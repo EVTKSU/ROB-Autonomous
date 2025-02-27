@@ -5,8 +5,7 @@ so in 2017 these guys made a program called pyvesc. it was awesome, it worked, b
 
 this guy fixed it. to install it:
 
-pip install pyvesc-fix
-
+pip install git+https://github.com/LiamBindle/PyVESC
 
 then open this stuff
 
