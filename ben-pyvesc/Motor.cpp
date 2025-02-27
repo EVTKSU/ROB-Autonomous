@@ -1,3 +1,5 @@
+// THIS IS AN ATTEMPT TO RECREATE THE MOTOR.PY PROGRAM IN C++. THIS IS A WORK IN PROGRESS. - ben
+
 #include <Arduino.h>
 #include <stdint.h>
 #include <string.h>
@@ -12,9 +14,6 @@
 #define COMM_SET_CHUCK_DATA    23
 #define COMM_ALIVE             29
 #define COMM_FORWARD_CAN       33
-
-// RC receiver input pin (adjust as needed)
-#define RC_INPUT_PIN 7
 
 // Data structure for VESC values
 struct VescData {
@@ -36,10 +35,12 @@ public:
     _serial->begin(baudrate);
   }
 
-  // Set duty cycle command
+  // Send a duty cycle command. (Note: In the original Python code,
+  // duty of 0.50 is sent but the printed message says "20%".)
   void setDuty(float duty, uint8_t can_id = 0) {
     uint8_t payload[5];
     uint8_t index = 0;
+    // If using CAN forwarding, additional bytes would be added.
     payload[index++] = COMM_SET_DUTY;
     int32_t duty_int = (int32_t)(duty * 100000);
     payload[index++] = (duty_int >> 24) & 0xFF;
@@ -50,20 +51,23 @@ public:
     sendMessage(payload, index);
   }
 
-  // Request and decode VESC values
+  // Request and decode VESC values into the provided data structure.
   bool getValues(VescData &data, uint8_t can_id = 0) {
     uint8_t payload[3];
     uint8_t length = 0;
     if (can_id != 0) {
+      // For CAN forwarding: payload would be [COMM_FORWARD_CAN, can_id, COMM_GET_VALUES]
       payload[length++] = COMM_FORWARD_CAN;
       payload[length++] = can_id;
     }
     payload[length++] = COMM_GET_VALUES;
     sendMessage(payload, length);
 
+    // Buffer to hold the incoming full message
     uint8_t messageBuffer[300];
     uint8_t messageLength = 0;
     if (receiveMessage(messageBuffer, messageLength)) {
+      // The first byte in the received payload is the command id.
       if (messageLength > 0 && messageBuffer[0] == COMM_GET_VALUES) {
         processReadPacket(messageBuffer, messageLength, data);
         return true;
@@ -76,7 +80,7 @@ private:
   HardwareSerial* _serial;
   unsigned long _timeout; // in milliseconds
 
-  // Calculate CRC16 (polynomial 0x1021) over data
+  // Compute CRC16 (polynomial 0x1021) over given data.
   uint16_t crc16(const uint8_t* data, size_t length) {
     uint16_t crc = 0;
     for (size_t i = 0; i < length; i++) {
@@ -93,10 +97,11 @@ private:
     return crc;
   }
 
-  // Pack and send the message: start byte, length, payload, CRC16, and end byte
+  // Pack the payload into a full message (start byte, length, payload, CRC16, end byte)
   void sendMessage(const uint8_t* payload, uint8_t payloadLength) {
     uint8_t message[300];
     uint8_t index = 0;
+    // For short messages (payload length <= 256)
     message[index++] = 2;                 // Start byte
     message[index++] = payloadLength;       // Length byte
 
@@ -105,7 +110,7 @@ private:
       message[index++] = payload[i];
     }
     
-    // Compute and append CRC16
+    // Compute CRC16 on the payload
     uint16_t crc = crc16(payload, payloadLength);
     message[index++] = (crc >> 8) & 0xFF;
     message[index++] = crc & 0xFF;
@@ -115,6 +120,8 @@ private:
   }
 
   // Receive a full UART message with timeout.
+  // On success, copies the payload (excluding framing bytes) into payloadBuffer
+  // and sets payloadLength to the payload size.
   bool receiveMessage(uint8_t* payloadBuffer, uint8_t &payloadLength) {
     unsigned long startTime = millis();
     uint8_t message[300];
@@ -129,11 +136,13 @@ private:
         uint8_t byteVal = (uint8_t)byteRead;
         message[messageIndex++] = byteVal;
         
+        // Once we have the first two bytes, we can determine the expected message length.
         if (messageIndex == 2 && message[0] == 2) {
           expectedLength = message[1] + 5;  // start, length, payload, CRC (2 bytes), end
           lengthDetermined = true;
         }
         if (lengthDetermined && messageIndex == expectedLength) {
+          // Validate end byte
           if (message[expectedLength - 1] != 3) {
             return false;
           }
@@ -141,6 +150,7 @@ private:
           uint16_t receivedCrc = ((uint16_t)message[expectedLength - 3] << 8) | message[expectedLength - 2];
           uint16_t computedCrc = crc16(&message[2], plLength);
           if (receivedCrc == computedCrc) {
+            // Copy payload (which starts at index 2) to payloadBuffer.
             for (uint8_t i = 0; i < plLength; i++) {
               payloadBuffer[i] = message[2 + i];
             }
@@ -155,20 +165,29 @@ private:
     return false;
   }
 
-  // Process the COMM_GET_VALUES packet payload and update VescData
+  // Process the received payload from a COMM_GET_VALUES packet.
+  // The payload format (after the command ID) is:
+  //   int16 temp_mosfet (/10.0), int16 temp_motor (/10.0),
+  //   float avg_motor_current (/100.0), float avg_input_current (/100.0),
+  //   [skip 8 bytes: avg_id and avg_iq],
+  //   int16 duty_cycle_now (/1000.0), float rpm, int16 input_voltage (/10.0)
   void processReadPacket(const uint8_t* payload, uint8_t payloadLength, VescData &data) {
+    // The first byte in the payload is the command id (COMM_GET_VALUES)
     uint8_t idx = 1; 
     if (payloadLength < 28) {
       return; // Not enough data received
     }
+    // temp_mosfet (int16, big-endian)
     int16_t temp_mosfet = (payload[idx] << 8) | payload[idx+1];
     data.temp_mosfet = temp_mosfet / 10.0f;
     idx += 2;
 
+    // temp_motor (int16)
     int16_t temp_motor = (payload[idx] << 8) | payload[idx+1];
     data.temp_motor = temp_motor / 10.0f;
     idx += 2;
 
+    // avg_motor_current (float, 4 bytes), divide by 100.0
     uint32_t avg_motor_current_int = ((uint32_t)payload[idx] << 24) | ((uint32_t)payload[idx+1] << 16) |
                                      ((uint32_t)payload[idx+2] << 8) | payload[idx+3];
     float avg_motor_current;
@@ -176,6 +195,7 @@ private:
     data.avg_motor_current = avg_motor_current / 100.0f;
     idx += 4;
 
+    // avg_input_current (float, 4 bytes), divide by 100.0
     uint32_t avg_input_current_int = ((uint32_t)payload[idx] << 24) | ((uint32_t)payload[idx+1] << 16) |
                                      ((uint32_t)payload[idx+2] << 8) | payload[idx+3];
     float avg_input_current;
@@ -183,12 +203,15 @@ private:
     data.avg_input_current = avg_input_current / 100.0f;
     idx += 4;
 
-    idx += 8; // Skip avg_id and avg_iq
+    // Skip 8 bytes (avg_id and avg_iq)
+    idx += 8;
 
+    // duty_cycle_now (int16), divide by 1000.0
     int16_t duty_cycle_now = (payload[idx] << 8) | payload[idx+1];
     data.duty_cycle_now = duty_cycle_now / 1000.0f;
     idx += 2;
 
+    // rpm (float, 4 bytes)
     uint32_t rpm_int = ((uint32_t)payload[idx] << 24) | ((uint32_t)payload[idx+1] << 16) |
                        ((uint32_t)payload[idx+2] << 8) | payload[idx+3];
     float rpm;
@@ -196,6 +219,7 @@ private:
     data.rpm = rpm;
     idx += 4;
 
+    // input_voltage (int16), divide by 10.0
     int16_t input_voltage = (payload[idx] << 8) | payload[idx+1];
     data.input_voltage = input_voltage / 10.0f;
     idx += 2;
@@ -205,51 +229,27 @@ private:
 VescUart* vesc;
 
 void setup() {
+  // Initialize Serial for debugging
   Serial.begin(115200);
-  while (!Serial) { /* wait for serial port */ }
-
-  // Initialize the RC receiver input pin
-  pinMode(RC_INPUT_PIN, INPUT);
+  while (!Serial) { /* wait for serial port to connect */ }
 
   // Initialize Serial1 for VESC communication (adjust as needed)
   Serial1.begin(115200);
-  delay(100);
+  delay(100);  // Allow time for serial port to initialize
 
   // Create the VescUart instance using Serial1
   vesc = new VescUart(&Serial1, 115200, 100);
 
-  Serial.println("Teensy RC Receiver to VESC Duty Cycle Controller Initialized.");
-}
+  // Set duty cycle (sending 0.50, though the printed message says 20%)
+  vesc->setDuty(0.50);
+  Serial.println("Set duty cycle to 20%");
 
-void loop() {
-  // Read PWM input from RC receiver.
-  // Typical RC receivers output a pulse width between 1000µs and 2000µs.
-  unsigned long pulseWidth = pulseIn(RC_INPUT_PIN, HIGH, 25000);
-  if (pulseWidth > 0) {
-    // Constrain the pulse width to expected values.
-    pulseWidth = constrain(pulseWidth, 1000UL, 2000UL);
-    // Map the pulse width from 1000-2000µs to an 8-bit value (0-255)
-    uint8_t pwmValue = map(pulseWidth, 1000, 2000, 0, 255);
-    // Convert the 8-bit value to a duty cycle (0.0 to 1.0)
-    float dutyCycle = pwmValue / 255.0f;
+  delay(100);  // Short delay before requesting values
 
-    Serial.print("PWM Input: ");
-    Serial.print(pulseWidth);
-    Serial.print(" µs, Mapped Value: ");
-    Serial.print(pwmValue);
-    Serial.print(", Duty Cycle: ");
-    Serial.println(dutyCycle, 3);
-
-    // Send the duty cycle command to the VESC
-    vesc->setDuty(dutyCycle);
-  } else {
-    Serial.println("No PWM signal detected.");
-  }
-
-  // Optionally, request and print VESC values for debugging.
+  // Request VESC values and print them if received
   VescData data;
   if (vesc->getValues(data)) {
-    Serial.println("VESC Values:");
+    Serial.println("Current VESC Values:");
     Serial.print("Duty Cycle: ");
     Serial.print(data.duty_cycle_now * 100.0f, 1);
     Serial.println("%");
@@ -262,8 +262,10 @@ void loop() {
     Serial.print(data.input_voltage, 1);
     Serial.println("V");
   } else {
-    Serial.println("Failed to get VESC values.");
+    Serial.println("Failed to get VESC values");
   }
+}
 
-  delay(50);
+void loop() {
+  // Nothing further to do in loop
 }
