@@ -13,8 +13,8 @@
 #define COMM_ALIVE             29
 #define COMM_FORWARD_CAN       33
 
-// RC receiver input pin (adjust as needed)
-#define RC_INPUT_PIN 7
+// RC receiver analog input pin (adjust as needed)
+#define RC_INPUT_PIN A0
 
 // Data structure for VESC values
 struct VescData {
@@ -25,7 +25,6 @@ struct VescData {
   float duty_cycle_now;
   float rpm;
   float input_voltage;
-  // (Other fields can be added as needed)
 };
 
 class VescUart {
@@ -36,7 +35,7 @@ public:
     _serial->begin(baudrate);
   }
 
-  // Set duty cycle command
+  // Send duty cycle command
   void setDuty(float duty, uint8_t can_id = 0) {
     uint8_t payload[5];
     uint8_t index = 0;
@@ -50,7 +49,7 @@ public:
     sendMessage(payload, index);
   }
 
-  // Request and decode VESC values
+  // Request VESC values and decode into data structure
   bool getValues(VescData &data, uint8_t can_id = 0) {
     uint8_t payload[3];
     uint8_t length = 0;
@@ -74,9 +73,9 @@ public:
 
 private:
   HardwareSerial* _serial;
-  unsigned long _timeout; // in milliseconds
+  unsigned long _timeout; // milliseconds
 
-  // Calculate CRC16 (polynomial 0x1021) over data
+  // Compute CRC16 (polynomial 0x1021)
   uint16_t crc16(const uint8_t* data, size_t length) {
     uint16_t crc = 0;
     for (size_t i = 0; i < length; i++) {
@@ -93,23 +92,21 @@ private:
     return crc;
   }
 
-  // Pack and send the message: start byte, length, payload, CRC16, and end byte
+  // Pack payload with framing and send over UART
   void sendMessage(const uint8_t* payload, uint8_t payloadLength) {
     uint8_t message[300];
     uint8_t index = 0;
-    message[index++] = 2;                 // Start byte
-    message[index++] = payloadLength;       // Length byte
+    message[index++] = 2;          // Start byte
+    message[index++] = payloadLength; // Length byte
 
-    // Copy payload into message
     for (uint8_t i = 0; i < payloadLength; i++) {
       message[index++] = payload[i];
     }
     
-    // Compute and append CRC16
     uint16_t crc = crc16(payload, payloadLength);
     message[index++] = (crc >> 8) & 0xFF;
     message[index++] = crc & 0xFF;
-    message[index++] = 3;                 // End byte
+    message[index++] = 3;          // End byte
 
     _serial->write(message, index);
   }
@@ -155,11 +152,11 @@ private:
     return false;
   }
 
-  // Process the COMM_GET_VALUES packet payload and update VescData
+  // Process the COMM_GET_VALUES packet payload
   void processReadPacket(const uint8_t* payload, uint8_t payloadLength, VescData &data) {
     uint8_t idx = 1; 
     if (payloadLength < 28) {
-      return; // Not enough data received
+      return;
     }
     int16_t temp_mosfet = (payload[idx] << 8) | payload[idx+1];
     data.temp_mosfet = temp_mosfet / 10.0f;
@@ -206,47 +203,35 @@ VescUart* vesc;
 
 void setup() {
   Serial.begin(115200);
-  while (!Serial) { /* wait for serial port */ }
+  while (!Serial) { /* wait for serial port connection */ }
 
-  // Initialize the RC receiver input pin
+  // Set analog read resolution to 8-bit so values are in the range 0-255.
+  analogReadResolution(8);
   pinMode(RC_INPUT_PIN, INPUT);
 
-  // Initialize Serial1 for VESC communication (adjust as needed)
+  // Initialize Serial1 for VESC communication (adjust pin if necessary)
   Serial1.begin(115200);
   delay(100);
 
-  // Create the VescUart instance using Serial1
   vesc = new VescUart(&Serial1, 115200, 100);
-
   Serial.println("Teensy RC Receiver to VESC Duty Cycle Controller Initialized.");
 }
 
 void loop() {
-  // Read PWM input from RC receiver.
-  // Typical RC receivers output a pulse width between 1000µs and 2000µs.
-  unsigned long pulseWidth = pulseIn(RC_INPUT_PIN, HIGH, 25000);
-  if (pulseWidth > 0) {
-    // Constrain the pulse width to expected values.
-    pulseWidth = constrain(pulseWidth, 1000UL, 2000UL);
-    // Map the pulse width from 1000-2000µs to an 8-bit value (0-255)
-    uint8_t pwmValue = map(pulseWidth, 1000, 2000, 0, 255);
-    // Convert the 8-bit value to a duty cycle (0.0 to 1.0)
-    float dutyCycle = pwmValue / 255.0f;
+  // Read the analog value (0-255) from the RC receiver input.
+  uint8_t pwmValue = analogRead(RC_INPUT_PIN);
+  // Convert the 8-bit value to a float duty cycle in the range 0.0 to 1.0.
+  float dutyCycle = pwmValue / 255.0f;
 
-    Serial.print("PWM Input: ");
-    Serial.print(pulseWidth);
-    Serial.print(" µs, Mapped Value: ");
-    Serial.print(pwmValue);
-    Serial.print(", Duty Cycle: ");
-    Serial.println(dutyCycle, 3);
+  Serial.print("Analog Value: ");
+  Serial.print(pwmValue);
+  Serial.print(" -> Duty Cycle: ");
+  Serial.println(dutyCycle, 3);
 
-    // Send the duty cycle command to the VESC
-    vesc->setDuty(dutyCycle);
-  } else {
-    Serial.println("No PWM signal detected.");
-  }
+  // Send the duty cycle command to the VESC.
+  vesc->setDuty(dutyCycle);
 
-  // Optionally, request and print VESC values for debugging.
+  // Optionally, request and print VESC values.
   VescData data;
   if (vesc->getValues(data)) {
     Serial.println("VESC Values:");
