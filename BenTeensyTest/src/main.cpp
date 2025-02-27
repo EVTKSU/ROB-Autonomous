@@ -1,5 +1,5 @@
 /*******************************************************
-   Integrated VESC and SBUS with Duty Cycle Mapping for Teensy 4.1
+   Integrated VESC and SBUS with Duty Cycle Mapping and Filtering for Teensy 4.1
 
    VESC:
      - Uses Serial1 for UART communication with the VESC.
@@ -10,10 +10,11 @@
    SBUS:
      - Uses Serial2 for receiving SBUS data.
      - Typical SBUS baud rate: 100000 with configuration SERIAL_8E2.
-     - Uses channel 2 (channels[1]) for controlling duty cycle.
+     - Uses channel 2 (channels[2] in this code) for controlling duty cycle.
      - SBUS channel 2 input range: 350 to 1700.
      - Mapped to duty cycle range: 0.0 to 1.0.
-     
+     - Duty values below 0.01 are filtered (set to 0 and no command is sent).
+
    USB Serial:
      - Used for combined debug output.
      
@@ -38,7 +39,7 @@ void setup() {
   while (!Serial) {
     ; // Wait for USB Serial port to connect
   }
-  Serial.println("Teensy 4.1 Integrated VESC and SBUS with Duty Cycle Mapping");
+  Serial.println("Teensy 4.1 Integrated VESC and SBUS with Duty Cycle Mapping and Filtering");
 
   // Initialize Serial1 for VESC communication
   Serial1.begin(115200);
@@ -60,13 +61,21 @@ void loop() {
   // Retrieve SBUS data from Serial2
   bool sbusDataValid = sbus.read(&channels[0], &sbusFailSafe, &sbusLostFrame);
 
-  // Map SBUS channel 2 (channels[1]) input (350 to 1700) to duty cycle (0.0 to 1.0)
+  // Map SBUS channel 2 (channels[2]) input (350 to 1700) to duty cycle (0.0 to 1.0)
   float duty = 0.0;
   if (sbusDataValid) {
-    duty = (float)(channels[2] - 350) / (1700 - 350);
+    // Map the input: subtract 350 and divide by 1350 (i.e. 1700-350)
+    duty = (float)(channels[2] - 350) / 1350.0;
     duty = constrain(duty, 0.0, 1.0);
-    // Send the mapped duty cycle to the VESC
-    UART.setDuty(duty);
+    
+    // Filter: if the duty cycle is below 0.01, set it to 0.0 and do not send.
+    if (duty < 0.01) {
+      duty = 0.0;
+      // Optionally, you can choose not to call UART.setDuty() at all.
+    } else {
+      // Send the mapped duty cycle to the VESC.
+      UART.setDuty(duty);
+    }
   }
 
   // Build a combined output string for USB Serial debug
@@ -92,5 +101,5 @@ void loop() {
   Serial.println(output);
 
   // Short delay before the next iteration
-  delay(250);
+  delay(10);
 }
