@@ -11,7 +11,7 @@
 // SBUS Configuration:
 
 SBUS sbus(Serial1);
-uint16_t channels[10]; // define quantity of SBUS channels, based on how many channels transmitter has. ours has 10.
+uint16_t channels[12]; // define quantity of SBUS channels, based on how many channels transmitter has. ours has 10.
 bool sbusFailSafe = false;
 bool sbusLostFrame = false;
 
@@ -55,6 +55,10 @@ void loop() {
     Serial.print(channels[8]);
     Serial.print("  CH9: ");
     Serial.print(channels[9]);
+    Serial.print("  CH10: ");
+    Serial.print(channels[10]);
+    Serial.print("  CH11: ");
+    Serial.print(channels[11]);
     Serial.print("\r");   // carriage return for same-line updates
     Serial.flush();       // force output to appear immediately
   }
