@@ -172,7 +172,7 @@ if __name__ == "__main__":
         vesc = VescUart("COM6", baudrate=115200)
         
         # Set duty cycle to 20%
-        vesc.set_duty(-0.2)
+        vesc.set_duty(.50)
         print("Set duty cycle to 20%")
         
         # Get and print current values
