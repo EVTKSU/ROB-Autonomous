@@ -60,14 +60,15 @@ void loop() {
 
   // Retrieve SBUS data from Serial2
   bool sbusDataValid = sbus.read(&channels[0], &sbusFailSafe, &sbusLostFrame);
-
+float realRpm = 0;
   // Map SBUS channel 2 (channels[2]) input (350 to 1700) to duty cycle (0.0 to 1.0)
   float duty = 0.0;
   if (sbusDataValid) {
     // Map the input: subtract 350 and divide by 1350 (i.e. 1700-350)
     duty = (float)(channels[2] - 350) / 1350.0;
     duty = constrain(duty, 0.0, 1.0);
-    
+    realRpm = (float)(UART.data.rpm / 30);
+    // erpm / motor poles
     // Filter: if the duty cycle is below 0.01, set it to 0.0 and do not send.
     if (duty < 0.01) {
       duty = 0.0;
@@ -82,7 +83,7 @@ void loop() {
   String output = "";
 
   if (vescDataValid) {
-    output += "VESC -> RPM: " + String(UART.data.rpm) +
+    output += "VESC -> RPM: " + String(realRpm) +
               ", Voltage: " + String(UART.data.inpVoltage) +
               ", AmpHours: " + String(UART.data.ampHours) +
               ", TachAbs: " + String(UART.data.tachometerAbs) + " | ";
