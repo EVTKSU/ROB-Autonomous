@@ -26,7 +26,7 @@
 // pin 0: RX - connect to ODrive TX
 // pin 1: TX - connect to ODrive RX
 // See https://www.pjrc.com/teensy/td_uart.html for other options on Teensy
- HardwareSerial& odrive_serial = Serial1;
+ HardwareSerial& odrive_serial = Serial3;
  int baudrate = 115200; // Must match what you configure on the ODrive (see docs for details)
 
 // Arduino Mega or Due - Serial1
