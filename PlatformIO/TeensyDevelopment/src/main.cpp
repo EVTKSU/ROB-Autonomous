@@ -1,69 +1,81 @@
-#include <FlexCAN_T4.h>
+#include <ODriveUART.h>
+#include <SoftwareSerial.h>
 
-FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> can1;
+// Documentation for this example can be found here:
+// https://docs.odriverobotics.com/v/latest/guides/arduino-uart-guide.html
 
-int count = 0;
+
+////////////////////////////////
+// Set up serial pins to the ODrive
+////////////////////////////////
+
+// Below are some sample configurations.
+// You can comment out the default one and uncomment the one you wish to use.
+// You can of course use something different if you like
+// Don't forget to also connect ODrive ISOVDD and ISOGND to Arduino 3.3V/5V and GND.
+
+// Teensy 3 and 4 (all versions) - Serial1
+// pin 0: RX - connect to ODrive TX
+// pin 1: TX - connect to ODrive RX
+// See https://www.pjrc.com/teensy/td_uart.html for other options on Teensy
+ HardwareSerial& odrive_serial = Serial3;
+ int baudrate = 115200; // Must match what you configure on the ODrive (see docs for details)
+
+
+ODriveUART odrive(odrive_serial);
 
 void setup() {
- Serial.begin(9600);
- while (!Serial);
+  odrive_serial.begin(baudrate);
 
- can1.begin();
- can1.setBaudRate(500000); 
+  Serial.begin(115200); // Serial to PC
+  
+  delay(10);
 
+  // comment this out for debugging sometimes
+  Serial.println("Waiting for ODrive...");
+  while (odrive.getState() == AXIS_STATE_UNDEFINED) {
+    delay(100);
+  }
+
+  Serial.println("found ODrive");
+  
+  Serial.print("DC voltage: ");
+  Serial.println(odrive.getParameterAsFloat("vbus_voltage"));
+  
+  Serial.println("Enabling closed loop control...");
+  while (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL) {
+    odrive.clearErrors();
+    odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
+    Serial.println("trying again to enable closed loop control");
+    delay(10);
+  }
+  
+  Serial.println("ODrive running!");
 }
 
 void loop() {
-CAN_message_t msgTransmit, msgReceive;
- 
-// adress of receiving device
-// this iterates the transmit id each loop to brute force the intended id
-  count ++;
-  msgTransmit.id = count;
-  Serial.print("CAN Message #: ");
-  Serial.println(count);
-  Serial.print("Transmit id: 0x");
-  Serial.println(count, HEX);
+  // float SINE_PERIOD = 1.0f; // Period of the position command sine wave in seconds
 
-
-
+  // float t = 0.001 * millis();
   
- // this is the length (bytes) of can message
- msgTransmit.len = 4; 
+  // float phase = t * (TWO_PI / SINE_PERIOD);
+  
+  // odrive.setPosition(
+  //   sin(phase), // position
+  //   cos(phase) * (TWO_PI / SINE_PERIOD) // velocity feedforward (optional)
+  // );
 
- //example hex values (may set vesc motor current amps to 5)
- msgTransmit.buf[0] = 0x00;
- msgTransmit.buf[1] = 0x00; 
- msgTransmit.buf[2] = 0x13; 
- msgTransmit.buf[3] = 0x88;
- 
- // writes message over can
- can1.write(msgTransmit);
- Serial.println("----------------------- teensy transmited data");
- 
- // reads can
- can1.read(msgReceive);
+  for (int i = 0; i < 100; i++) {
 
-// msgRecieve.id is the adress for the intended recipient
-// this is set by sender (see msgTransmit.id) 
-// this is checking to handle messages with this (teensy) device adress
- if(msgReceive.id == 0x871 || msgReceive.id == 0x872){
-  Serial.println("======================================================================================");
-  Serial.println("This message is for me! \nData: ");
-  // print message
-  for (int byte : msgReceive.buf){
-    Serial.print(byte);
-  }
-  Serial.println();
-  Serial.println("======================================================================================");
- }else if (msgReceive.id != 0){
-    Serial.print("Unexpected message: ");
-    Serial.print(msgReceive.id,HEX);
-
+    odrive.setPosition(i, 5);
+    
+    ODriveFeedback feedback = odrive.getFeedback();
+    Serial.print("pos:");
+    Serial.print(feedback.pos);
+    Serial.print(", ");
+    Serial.print("vel:");
+    Serial.print(feedback.vel);
     Serial.println();
- }
-
- // this code works with no delay (goes really fuckin fast)
- // delay of 1 - 10 minimum recommended to keep can2usb software from crashing / freezing
- delay(200);
+    delay(1000);
+  }
 }
