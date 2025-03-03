@@ -18,11 +18,11 @@ HardwareSerial& odrive_serial = Serial3;
 int baudrate = 115200;  // Must match ODrive config
 ODriveUART odrive(odrive_serial);
 
-// Global variable to store the latest target position.
+// Global variable to hold the last computed target position.
 float lastTargetPosition = 0.0f;
 
 void setup() {
-  // Initialize ODrive UART and USB Serial for debugging.
+  // Initialize ODrive UART and Serial for debugging.
   odrive_serial.begin(baudrate);
   Serial.begin(115200);
   while (!Serial) { ; }
@@ -65,25 +65,24 @@ void setup() {
   }
   
   Serial.println("ODrive is now in CLOSED_LOOP_CONTROL!");
-  Serial.println("Setup complete.\n");
+  Serial.println("Setup complete.");
 }
 
 void loop() {
-  // Update SBUS data if available.
+  // Check for new SBUS data and update target if available.
   if (sbus.read(&channels[0], &sbusFailSafe, &sbusLostFrame)) {
-    const float sbusMin = 390.0f;   // Adjust these if necessary.
+    const float sbusMin = 390.0f;   // Adjust as needed for your transmitter
     const float sbusMax = 1811.0f;
-    const float posRange = 20.0f;   // Maps to -10 to +10 rotations.
-    float rawValue = (float) channels[2];
+    const float posRange = 500.0f;   // Maps to a target range of -10 to +10 rotations
+    float rawValue = (float)channels[2];
     float normalized = (rawValue - sbusMin) / (sbusMax - sbusMin);
     lastTargetPosition = normalized * posRange - 10.0f;
   }
-  
-  // Continuously send the latest target position.
-  // Feedforward velocity is set high (200.0f) for rapid movement.
-  odrive.setPosition(lastTargetPosition, 200.0f);
 
-  // Debug printing every 100 ms to minimize overhead.
+  // Continuously send the latest target position with a feedforward velocity of 30.0.
+  odrive.setPosition(lastTargetPosition, 50.0f);
+
+  // Print debug information every 100 ms (reducing print overhead).
   static unsigned long lastPrintTime = 0;
   if (millis() - lastPrintTime > 100) {
     ODriveFeedback fb = odrive.getFeedback();
@@ -94,6 +93,6 @@ void loop() {
     Serial.flush();
     lastPrintTime = millis();
   }
-  
-  // No extra delay to keep the loop as fast as possible.
+
+  delay(1); // Minimal delay to let loop run nearly continuously.
 }

@@ -3,11 +3,9 @@
 #include <SBUS.h>
 #include <VescUart.h>
 
-// -----------------------
 // SBUS Configuration (10 channels)
-// -----------------------
 SBUS sbus(Serial2);
-uint16_t channels[10];  // Array to hold 10 SBUS channels
+uint16_t channels[10];  // initializing array of 10 channels
 bool sbusFailSafe = false;
 bool sbusLostFrame = false;
 
@@ -27,44 +25,55 @@ void setup() {
   Serial.begin(115200);
   while (!Serial) { ; }
   delay(10);
-  Serial.println("Established USB Serial.");
-
-  // Initialize SBUS on Serial2.
+  Serial.println("Established USB Serial :)");
+  
+  // Initialize SBUS on Serial2 (100000 baud, 8E2 format)
   Serial2.begin(100000, SERIAL_8E2);
   sbus.begin();
   delay(500);
-
-  // Display initial DC bus voltage.
-  float vbus = odrive.getParameterAsFloat("vbus_voltage");
+  
+  // Wait for ODrive to become available.
+  Serial.println("Waiting for ODrive...");
+  while (odrive.getState() == AXIS_STATE_UNDEFINED) {
+    delay(100);
+  }
+  Serial.println("Found ODrive! Yippeee!");
+  
   Serial.print("DC voltage: ");
-  Serial.println(vbus, 2);
-
-  // Clear any pre-existing errors.
-  odrive.clearErrors();
-  Serial.println("Cleared errors.");
-
+  Serial.println(odrive.getParameterAsFloat("vbus_voltage"), 2);
+  
   // Run motor calibration.
   Serial.println("Starting motor calibration...");
   odrive.setState(AXIS_STATE_MOTOR_CALIBRATION);
   delay(4000);
   odrive.clearErrors();
-
+  
   // Run encoder offset calibration.
   Serial.println("Starting encoder offset calibration...");
   odrive.setState(AXIS_STATE_ENCODER_OFFSET_CALIBRATION);
   delay(4000);
   odrive.clearErrors();
-
-  // Transition to closed-loop control.
+  
+  // Enable closed loop control (retry until successful)
   Serial.println("Enabling closed loop control...");
   while (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL) {
     odrive.clearErrors();
     odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
-    Serial.println("Trying again to enable closed-loop control...");
-    delay(500);
+    Serial.println("trying again to enable closed loop control");
+    delay(10);
   }
   
-  Serial.println("ODrive is now in CLOSED_LOOP_CONTROL!");
+  // Set ODrive to use POS_FILTER mode.
+  Serial.println("Setting input mode to POS_FILTER...");
+  odrive_serial.println("w axis0.controller.config.input_mode 5");
+  delay(100);
+  
+  // Increase pos_filter bandwidth to 100 Hz for faster response.
+  Serial.println("Setting pos_filter bandwidth to 100 Hz...");
+  odrive_serial.println("w axis0.controller.config.pos_filter_bandwidth 100");
+  delay(100);
+  
+  Serial.println("ODrive running!");
   Serial.println("Setup complete.\n");
 }
 
@@ -82,7 +91,7 @@ void loop() {
   // Continuously send the latest target position.
   // Feedforward velocity is set high (200.0f) for rapid movement.
   odrive.setPosition(lastTargetPosition, 200.0f);
-
+  
   // Debug printing every 100 ms to minimize overhead.
   static unsigned long lastPrintTime = 0;
   if (millis() - lastPrintTime > 100) {
