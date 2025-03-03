@@ -10,7 +10,7 @@
 
 // SBUS Configuration:
 
-SBUS sbus(Serial1);
+SBUS sbus(Serial2);
 uint16_t channels[10]; // define quantity of SBUS channels, based on how many channels transmitter has. ours has 10.
 bool sbusFailSafe = false;
 bool sbusLostFrame = false;
