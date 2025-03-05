@@ -20,7 +20,7 @@ ODriveUART odrive(odrive_serial);
 float lastTargetPosition = 0.0f;
 
 void setup() {
-  // Initialize ODrive UART and USB Serial for debugging.
+  // Initialize ODrive UART and USB Serial for debugging/plotting.
   odrive_serial.begin(baudrate);
   Serial.begin(115200);
   while (!Serial) { ; }
@@ -63,23 +63,23 @@ void setup() {
     delay(10);
   }
   
-  // Set input mode to TRAP_TRAJ for aggressive, trapezoidal motion.
+  // Set input mode to TRAP_TRAJ for aggressive trapezoidal trajectory motion.
   Serial.println("Setting input mode to TRAP_TRAJ...");
   odrive_serial.println("w axis0.controller.config.input_mode 1");
   delay(100);
   
   // Set velocity limit to allow faster movement.
-  Serial.println("Setting velocity limit to 25.0...");
-  odrive_serial.println("w axis0.controller.config.vel_limit 100.0");
+  Serial.println("Setting velocity limit to 100.0...");
+  odrive_serial.println("w axis0.controller.config.vel_limit 40.0");
   delay(100);
   
   // Increase acceleration limit to 200.0 for faster acceleration.
-  Serial.println("Setting acceleration limit to 100.0...");
-  odrive_serial.println("w axis0.controller.config.accel_limit 200.0");
+  Serial.println("Setting acceleration limit to 200.0...");
+  odrive_serial.println("w axis0.controller.config.accel_limit 20.0");
   delay(100);
   
   // Set deceleration limit to 200.0 for symmetric braking.
-  Serial.println("Setting deceleration limit to 100.0...");
+  Serial.println("Setting deceleration limit to 200.0...");
   odrive_serial.println("w axis0.controller.config.decel_limit 200.0");
   delay(100);
   
@@ -98,19 +98,42 @@ void loop() {
     lastTargetPosition = normalized * posRange - 10.0f;
   }
   
-  // Command the new target position.
-  // The second parameter is the velocity feed-forward, adjust if needed.
+  // Command the new target position with a velocity feed-forward value.
   odrive.setPosition(lastTargetPosition, 40.0f);
   
-  // Debug printing every 100 ms to minimize overhead.
+  // Debug printing for plotting every 100 ms.
   static unsigned long lastPrintTime = 0;
   if (millis() - lastPrintTime > 100) {
+    // Get feedback from ODrive.
     ODriveFeedback fb = odrive.getFeedback();
-    String output;
-    output += "Target: " + String(lastTargetPosition, 2);
-    output += " | Feedback: " + String(fb.pos, 2);
-    Serial.print("\r" + output);
-    Serial.flush();
+    
+    // Retrieve current bus amperage and voltage.
+    float current = odrive.getParameterAsFloat("ibus");
+    float voltage = odrive.getParameterAsFloat("vbus_voltage");
+    
+    // Calculate RPM (assuming fb.vel is in rev/s).
+    float rpm = fb.vel * 60.0;
+    
+    // Start each line with a carriage return.
+    Serial.print("\r");
+    // Print CSV: target position, feedback position.
+    Serial.print(lastTargetPosition, 2);
+    Serial.print(",");
+    Serial.print(fb.pos, 2);
+    Serial.print(",");
+    
+    // Check current reading; if it's NaN, print "NaN", otherwise print value.
+    if (isnan(current)) {
+      Serial.print("NaN");
+    } else {
+      Serial.print(current, 2);
+    }
+    
+    Serial.print(",");
+    Serial.print(voltage, 2);
+    Serial.print(",");
+    Serial.println(rpm, 2);
+    
     lastPrintTime = millis();
   }
 }
