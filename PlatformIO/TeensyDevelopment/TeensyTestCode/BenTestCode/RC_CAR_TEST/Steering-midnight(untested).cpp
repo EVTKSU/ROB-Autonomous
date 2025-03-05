@@ -82,15 +82,13 @@ void loop() {
   if (sbus.read(&channels[0], &sbusFailSafe, &sbusLostFrame)) {
     const float sbusMin = 390.0f;   // Adjust these if necessary.
     const float sbusMax = 1811.0f;
-    const float posRange = 20.0f;   // Maps to -10 to +10 rotations.
+    const float posRange = 20.0f;   // Maps sbus values to 20 rotations each direction.
     float rawValue = (float) channels[2];
     float normalized = (rawValue - sbusMin) / (sbusMax - sbusMin);
     lastTargetPosition = normalized * posRange - 10.0f;
   }
   
-  // Continuously send the latest target position.
-  // Feedforward velocity is set high (200.0f) for rapid movement.
-  odrive.setPosition(lastTargetPosition, 200.0f);
+  odrive.setPosition(lastTargetPosition, 40.0f);
   
   // Debug printing every 100 ms to minimize overhead.
   static unsigned long lastPrintTime = 0;
@@ -104,5 +102,4 @@ void loop() {
     lastPrintTime = millis();
   }
   
-  // No extra delay to keep the loop as fast as possible.
 }
