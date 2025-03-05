@@ -3,11 +3,9 @@
 #include <SBUS.h>
 #include <VescUart.h>
 
-// -----------------------
 // SBUS Configuration (10 channels)
-// -----------------------
 SBUS sbus(Serial2);
-uint16_t channels[10];  // Array to hold 10 SBUS channels
+uint16_t channels[10];  // initializing array of 10 channels
 bool sbusFailSafe = false;
 bool sbusLostFrame = false;
 
@@ -27,62 +25,83 @@ void setup() {
   Serial.begin(115200);
   while (!Serial) { ; }
   delay(10);
-  Serial.println("Established USB Serial.");
-
-  // Initialize SBUS on Serial2.
+  Serial.println("Established USB Serial :)");
+  
+  // Initialize SBUS on Serial2 (100000 baud, 8E2 format)
   Serial2.begin(100000, SERIAL_8E2);
   sbus.begin();
   delay(500);
-
-  // Display initial DC bus voltage.
-  float vbus = odrive.getParameterAsFloat("vbus_voltage");
+  
+  // Wait for ODrive to become available.
+  Serial.println("Waiting for ODrive...");
+  while (odrive.getState() == AXIS_STATE_UNDEFINED) {
+    delay(100);
+  }
+  Serial.println("Found ODrive! Yippeee!");
+  
   Serial.print("DC voltage: ");
-  Serial.println(vbus, 2);
-
-  // Clear any pre-existing errors.
-  odrive.clearErrors();
-  Serial.println("Cleared errors.");
-
+  Serial.println(odrive.getParameterAsFloat("vbus_voltage"), 2);
+  
   // Run motor calibration.
   Serial.println("Starting motor calibration...");
   odrive.setState(AXIS_STATE_MOTOR_CALIBRATION);
   delay(4000);
   odrive.clearErrors();
-
+  
   // Run encoder offset calibration.
   Serial.println("Starting encoder offset calibration...");
   odrive.setState(AXIS_STATE_ENCODER_OFFSET_CALIBRATION);
   delay(4000);
   odrive.clearErrors();
-
-  // Transition to closed-loop control.
+  
+  // Enable closed loop control (retry until successful)
   Serial.println("Enabling closed loop control...");
   while (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL) {
     odrive.clearErrors();
     odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
-    Serial.println("Trying again to enable closed-loop control...");
-    delay(500);
+    Serial.println("trying again to enable closed loop control");
+    delay(10);
   }
   
-  Serial.println("ODrive is now in CLOSED_LOOP_CONTROL!");
+  // Set input mode to TRAP_TRAJ for aggressive, trapezoidal motion.
+  Serial.println("Setting input mode to TRAP_TRAJ...");
+  odrive_serial.println("w axis0.controller.config.input_mode 1");
+  delay(100);
+  
+  // Set velocity limit to allow faster movement.
+  Serial.println("Setting velocity limit to 25.0...");
+  odrive_serial.println("w axis0.controller.config.vel_limit 100.0");
+  delay(100);
+  
+  // Increase acceleration limit to 200.0 for faster acceleration.
+  Serial.println("Setting acceleration limit to 100.0...");
+  odrive_serial.println("w axis0.controller.config.accel_limit 200.0");
+  delay(100);
+  
+  // Set deceleration limit to 200.0 for symmetric braking.
+  Serial.println("Setting deceleration limit to 100.0...");
+  odrive_serial.println("w axis0.controller.config.decel_limit 200.0");
+  delay(100);
+  
+  Serial.println("ODrive running!");
   Serial.println("Setup complete.\n");
 }
 
 void loop() {
   // Update SBUS data if available.
   if (sbus.read(&channels[0], &sbusFailSafe, &sbusLostFrame)) {
-    const float sbusMin = 390.0f;   // Adjust these if necessary.
+    const float sbusMin = 410.0f;   // Adjust these if necessary.
     const float sbusMax = 1811.0f;
-    const float posRange = 20.0f;   // Maps to -10 to +10 rotations.
+    const float posRange = 20.0f;   // Maps sbus values to 20 rotations each direction.
     float rawValue = (float) channels[2];
     float normalized = (rawValue - sbusMin) / (sbusMax - sbusMin);
     lastTargetPosition = normalized * posRange - 10.0f;
   }
   
-  // Continuously send the latest target position.
-  // Feedforward velocity is set high (200.0f) for rapid movement.
-  odrive.setPosition(lastTargetPosition, 200.0f);
-
+  // Command the new target position.
+  // The second parameter is the velocity feed-forward, adjust if needed.
+  odrive.setPosition(lastTargetPosition, 40.0f);
+  
   // Debug printing every 100 ms to minimize overhead.
   static unsigned long lastPrintTime = 0;
   if (millis() - lastPrintTime > 100) {
@@ -94,6 +113,4 @@ void loop() {
     Serial.flush();
     lastPrintTime = millis();
   }
-  
-  // No extra delay to keep the loop as fast as possible.
 }

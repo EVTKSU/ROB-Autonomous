@@ -63,14 +63,24 @@ void setup() {
     delay(10);
   }
   
-  // Set ODrive to use POS_FILTER mode.
-  Serial.println("Setting input mode to POS_FILTER...");
-  odrive_serial.println("w axis0.controller.config.input_mode 5");
+  // Set input mode to TRAP_TRAJ for aggressive, trapezoidal motion.
+  Serial.println("Setting input mode to TRAP_TRAJ...");
+  odrive_serial.println("w axis0.controller.config.input_mode 1");
   delay(100);
   
-  // Increase pos_filter bandwidth to 100 Hz for faster response.
-  Serial.println("Setting pos_filter bandwidth to 100 Hz...");
-  odrive_serial.println("w axis0.controller.config.pos_filter_bandwidth 100");
+  // Set velocity limit to allow faster movement.
+  Serial.println("Setting velocity limit to 25.0...");
+  odrive_serial.println("w axis0.controller.config.vel_limit 100.0");
+  delay(100);
+  
+  // Increase acceleration limit to 200.0 for faster acceleration.
+  Serial.println("Setting acceleration limit to 100.0...");
+  odrive_serial.println("w axis0.controller.config.accel_limit 200.0");
+  delay(100);
+  
+  // Set deceleration limit to 200.0 for symmetric braking.
+  Serial.println("Setting deceleration limit to 100.0...");
+  odrive_serial.println("w axis0.controller.config.decel_limit 200.0");
   delay(100);
   
   Serial.println("ODrive running!");
@@ -80,7 +90,7 @@ void setup() {
 void loop() {
   // Update SBUS data if available.
   if (sbus.read(&channels[0], &sbusFailSafe, &sbusLostFrame)) {
-    const float sbusMin = 390.0f;   // Adjust these if necessary.
+    const float sbusMin = 410.0f;   // Adjust these if necessary.
     const float sbusMax = 1811.0f;
     const float posRange = 20.0f;   // Maps sbus values to 20 rotations each direction.
     float rawValue = (float) channels[2];
@@ -88,6 +98,8 @@ void loop() {
     lastTargetPosition = normalized * posRange - 10.0f;
   }
   
+  // Command the new target position.
+  // The second parameter is the velocity feed-forward, adjust if needed.
   odrive.setPosition(lastTargetPosition, 40.0f);
   
   // Debug printing every 100 ms to minimize overhead.
@@ -101,5 +113,4 @@ void loop() {
     Serial.flush();
     lastPrintTime = millis();
   }
-  
 }
