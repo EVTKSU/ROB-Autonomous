@@ -23,28 +23,31 @@ char packetBuffer[UDP_TX_PACKET_MAX_SIZE];
 float steering_angle = 0.0;
 float throttle = 0.0;
 bool emergency = false;
-int packet_number = 0;
 
-  void setDataFromUDP(const std::string &udpData) {
+void setDataFromUDP(const std::string &udpData) {
+    // Create a string stream from the input data
     std::istringstream ss(udpData);
     std::string token;
     std::vector<std::string> tokens;
-    
+
     // Split the string by commas
     while (std::getline(ss, token, ',')) {
         tokens.push_back(token);
     }
 
-    // Expect at least 3 tokens: steering_angle, throttle, and emergency flag
+    // Expecting at least 3 tokens: steering_angle, throttle, and emergency flag
     if (tokens.size() >= 3) {
-        steering_angle = static_cast<float>(atof(tokens[0].c_str()));
-        throttle = static_cast<float>(atof(tokens[1].c_str()));
-        emergency = (atoi(tokens[2].c_str()) != 0);
+        try {
+            steering_angle = std::stof(tokens[0]);
+            throttle = std::stof(tokens[1]);
+            emergency = (std::stoi(tokens[2]) != 0);
+        } catch (const std::exception &e) {
+            std::cerr << "Error parsing UDP data: " << e.what() << std::endl;
+        }
     } else {
-        Serial.print("Insufficient data received: ");
-        Serial.println(udpData.c_str());
+        std::cerr << "Insufficient data received: " << udpData << std::endl;
     }
-  }
+}
 
 
 EthernetUDP Udp;
@@ -90,24 +93,19 @@ void loop() {
   // Check for incoming UDP packets
   int packetSize = Udp.parsePacket();
   if (packetSize > 0) {
-    packet_number ++;
     int len = Udp.read(packetBuffer, sizeof(packetBuffer) - 1);
     if (len > 0) {
       packetBuffer[len] = '\0';  // Null-terminate the buffer
     }
-   
     Serial.print("Received packet: ");
-    Serial.print(packetBuffer);
-    Serial.print("packet #: ");
-    Serial.println(packet_number);
+    Serial.println(packetBuffer);
     setDataFromUDP(packetBuffer);
-    Serial.print(" Steering angle: ");
+    Serial.print("Steering angle: ");
     Serial.print(steering_angle);
-    Serial.print(" Throttle %: ");
+    Serial.print("throttle %: ");
     Serial.print(throttle);
-    Serial.print(" Emergency flag: ");
+    Serial.print("Emergency flag: ");
     Serial.print(emergency);
-    Serial.print("\n");
     
   }
 }
