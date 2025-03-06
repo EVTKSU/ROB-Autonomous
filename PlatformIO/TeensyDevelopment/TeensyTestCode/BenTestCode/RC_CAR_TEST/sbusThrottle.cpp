@@ -65,7 +65,7 @@ float realRpm = 0;
   float duty = 0.0;
   if (sbusDataValid) {
     // Map the input: subtract 350 and divide by 1350 (i.e. 1700-350)
-    duty = (float)(channels[2] - 350) / 1350.0;
+    duty = (float)(channels[0] - 350) / 1350.0;
     duty = constrain(duty, 0.0, 1.0);
     realRpm = (float)(UART.data.rpm / 30);
     // erpm / motor poles

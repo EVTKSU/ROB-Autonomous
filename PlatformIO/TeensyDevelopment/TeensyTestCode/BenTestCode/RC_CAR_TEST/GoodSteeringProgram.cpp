@@ -25,65 +25,80 @@ void setup() {
   Serial.begin(115200);
   while (!Serial) { ; }
   delay(10);
+  Serial.print("\r");
   Serial.println("Established USB Serial :)");
   
   // Initialize SBUS on Serial2 (100000 baud, 8E2 format)
+  Serial.print("\r");
+  Serial.println("Initializing SBUS on Serial2...");
   Serial2.begin(100000, SERIAL_8E2);
   sbus.begin();
   delay(500);
   
   // Wait for ODrive to become available.
+  Serial.print("\r");
   Serial.println("Waiting for ODrive...");
   while (odrive.getState() == AXIS_STATE_UNDEFINED) {
     delay(100);
   }
+  Serial.print("\r");
   Serial.println("Found ODrive! Yippeee!");
   
+  Serial.print("\r");
   Serial.print("DC voltage: ");
   Serial.println(odrive.getParameterAsFloat("vbus_voltage"), 2);
   
   // Run motor calibration.
+  Serial.print("\r");
   Serial.println("Starting motor calibration...");
   odrive.setState(AXIS_STATE_MOTOR_CALIBRATION);
   delay(4000);
   odrive.clearErrors();
   
   // Run encoder offset calibration.
+  Serial.print("\r");
   Serial.println("Starting encoder offset calibration...");
   odrive.setState(AXIS_STATE_ENCODER_OFFSET_CALIBRATION);
   delay(4000);
   odrive.clearErrors();
   
-  // Enable closed loop control (retry until successful)
+  Serial.print("\r");
   Serial.println("Enabling closed loop control...");
   while (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL) {
     odrive.clearErrors();
     odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
+    Serial.print("\r");
     Serial.println("trying again to enable closed loop control");
     delay(10);
   }
   
   // Set input mode to TRAP_TRAJ for aggressive trapezoidal trajectory motion.
+  Serial.print("\r");
   Serial.println("Setting input mode to TRAP_TRAJ...");
   odrive_serial.println("w axis0.controller.config.input_mode 1");
   delay(100);
   
   // Set velocity limit to allow faster movement.
+  Serial.print("\r");
   Serial.println("Setting velocity limit to 100.0...");
-  odrive_serial.println("w axis0.controller.config.vel_limit 40.0");
+  odrive_serial.println("w axis0.controller.config.vel_limit 200.0");
   delay(100);
   
   // Increase acceleration limit to 200.0 for faster acceleration.
+  Serial.print("\r");
   Serial.println("Setting acceleration limit to 200.0...");
-  odrive_serial.println("w axis0.controller.config.accel_limit 20.0");
+  odrive_serial.println("w axis0.controller.config.accel_limit 100.0");
   delay(100);
   
   // Set deceleration limit to 200.0 for symmetric braking.
+  Serial.print("\r");
   Serial.println("Setting deceleration limit to 200.0...");
-  odrive_serial.println("w axis0.controller.config.decel_limit 200.0");
+  odrive_serial.println("w axis0.controller.config.decel_limit 100.0");
   delay(100);
   
+  Serial.print("\r");
   Serial.println("ODrive running!");
+  Serial.print("\r");
   Serial.println("Setup complete.\n");
 }
 
@@ -92,8 +107,8 @@ void loop() {
   if (sbus.read(&channels[0], &sbusFailSafe, &sbusLostFrame)) {
     const float sbusMin = 410.0f;   // Adjust these if necessary.
     const float sbusMax = 1811.0f;
-    const float posRange = 20.0f;   // Maps sbus values to 20 rotations each direction.
-    float rawValue = (float) channels[2];
+    const float posRange = 4.0f;   // Maps sbus values to 20 rotations each direction.
+    float rawValue = (float) channels[3];
     float normalized = (rawValue - sbusMin) / (sbusMax - sbusMin);
     lastTargetPosition = normalized * posRange - 10.0f;
   }
