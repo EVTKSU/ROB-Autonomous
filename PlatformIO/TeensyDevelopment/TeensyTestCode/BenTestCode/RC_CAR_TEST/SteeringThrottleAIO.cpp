@@ -4,210 +4,176 @@
 #include <SBUS.h>
 #include <SoftwareSerial.h>
 
-// -----------------------
-// VESC Configuration (Serial1)
-// -----------------------
-VescUart UART;  // VESC communication
+// ---------- Global Objects ----------
 
-// -----------------------
-// ODrive Configuration (Serial3)
-// -----------------------
+// VESC on Serial1
+VescUart UART;
+
+// ODrive on Serial3
 HardwareSerial& odrive_serial = Serial3;
-int odriveBaud = 115200;  // Must match ODrive configuration
+int baudrate = 115200;  // Must match ODrive config
 ODriveUART odrive(odrive_serial);
-float lastTargetPosition = 0.0f;  // Global target position for ODrive
 
-// -----------------------
-// SBUS Configuration (Serial2)
-// -----------------------
+// SBUS on Serial2
 SBUS sbus(Serial2);
-uint16_t channels[10];  // Array for SBUS channel values (assumes 10 channels)
+uint16_t channels[10];  // Assumes 10 channels
 bool sbusFailSafe = false;
 bool sbusLostFrame = false;
 
+// Global variable for ODrive target position (Program 2)
+float lastTargetPosition = 0.0f;
+
+//////////////////////
+// setup() Function
+//////////////////////
 void setup() {
-  // Initialize USB Serial for debugging output.
+  // ----- Common Setup -----
   Serial.begin(115200);
   while (!Serial) { ; }
-  
-  // Print happy startup messages with carriage return.
-  Serial.print("\r");
-  Serial.println("Teensy 4.1 Integrated VESC, ODrive, and SBUS System Starting...");
-  
-  // Initialize VESC on Serial1.
-  Serial.print("\r");
+  Serial.println("Teensy 4.1 Integrated VESC, ODrive, and SBUS");
+
+  // ----- VESC & SBUS Setup (Program 1) -----
   Serial.println("Initializing VESC on Serial1...");
   Serial1.begin(115200);
   UART.setSerialPort(&Serial1);
-  
-  // Initialize SBUS on Serial2 (100000 baud, SERIAL_8E2).
-  Serial.print("\r");
+
   Serial.println("Initializing SBUS on Serial2...");
   Serial2.begin(100000, SERIAL_8E2);
   sbus.begin();
-  
-  // Initialize ODrive on Serial3.
-  Serial.print("\r");
-  Serial.println("Initializing ODrive on Serial3...");
-  odrive_serial.begin(odriveBaud);
-  
   delay(500);
-  
-  // --- ODrive Setup ---
-  Serial.print("\r");
+
+  // ----- ODrive Setup (Program 2) -----
+  Serial.println("Initializing ODrive on Serial3...");
+  odrive_serial.begin(baudrate);
+
+  // Add a timeout to avoid waiting forever for ODrive
   Serial.println("Waiting for ODrive...");
-  while (odrive.getState() == AXIS_STATE_UNDEFINED) {
+  unsigned long startTime = millis();
+  while (odrive.getState() == AXIS_STATE_UNDEFINED && (millis() - startTime) < 5000) {
     delay(100);
   }
-  Serial.print("\r");
-  Serial.println("ODrive Found!");
-  
-  Serial.print("\r");
-  Serial.print("ODrive DC Voltage: ");
-  Serial.println(odrive.getParameterAsFloat("vbus_voltage"), 2);
-  
-  // Run motor calibration.
-  Serial.print("\r");
-  Serial.println("Starting ODrive Motor Calibration...");
-  odrive.setState(AXIS_STATE_MOTOR_CALIBRATION);
-  delay(4000);
-  odrive.clearErrors();
-  
-  // Run encoder offset calibration.
-  Serial.print("\r");
-  Serial.println("Starting ODrive Encoder Offset Calibration...");
-  odrive.setState(AXIS_STATE_ENCODER_OFFSET_CALIBRATION);
-  delay(4000);
-  odrive.clearErrors();
-  
-  // Enable closed loop control.
-  Serial.print("\r");
-  Serial.println("Enabling ODrive Closed Loop Control...");
-  while (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL) {
+  if (odrive.getState() == AXIS_STATE_UNDEFINED) {
+    Serial.println("ODrive not found! Proceeding without ODrive.");
+  } else {
+    Serial.println("Found ODrive! Yippeee!");
+    Serial.print("DC voltage: ");
+    Serial.println(odrive.getParameterAsFloat("vbus_voltage"), 2);
+
+    Serial.println("Starting motor calibration...");
+    odrive.setState(AXIS_STATE_MOTOR_CALIBRATION);
+    delay(4000);
     odrive.clearErrors();
-    odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
-    Serial.print("\r");
-    Serial.println("Retrying to Enable Closed Loop Control...");
-    delay(10);
+
+    Serial.println("Starting encoder offset calibration...");
+    odrive.setState(AXIS_STATE_ENCODER_OFFSET_CALIBRATION);
+    delay(4000);
+    odrive.clearErrors();
+
+    Serial.println("Enabling closed loop control...");
+    startTime = millis();
+    while (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL && (millis() - startTime) < 5000) {
+      odrive.clearErrors();
+      odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
+      Serial.println("trying again to enable closed loop control");
+      delay(10);
+    }
+
+    Serial.println("Setting input mode to TRAP_TRAJ...");
+    odrive_serial.println("w axis0.controller.config.input_mode 1");
+    delay(100);
+
+    Serial.println("Setting velocity limit to 200.0...");
+    odrive_serial.println("w axis0.controller.config.vel_limit 200.0");
+    delay(100);
+
+    Serial.println("Setting acceleration limit to 100.0...");
+    odrive_serial.println("w axis0.controller.config.accel_limit 100.0");
+    delay(100);
+
+    Serial.println("Setting deceleration limit to 100.0...");
+    odrive_serial.println("w axis0.controller.config.decel_limit 100.0");
+    delay(100);
+
+    Serial.println("ODrive running!");
   }
-  
-  // Configure ODrive input mode and limits.
-  Serial.print("\r");
-  Serial.println("Setting ODrive Input Mode to TRAP_TRAJ...");
-  odrive_serial.println("w axis0.controller.config.input_mode 1");
-  delay(100);
-  
-  Serial.print("\r");
-  Serial.println("Configuring ODrive Velocity Limit to 40.0...");
-  odrive_serial.println("w axis0.controller.config.vel_limit 40.0");
-  delay(100);
-  
-  Serial.print("\r");
-  Serial.println("Configuring ODrive Acceleration Limit to 20.0...");
-  odrive_serial.println("w axis0.controller.config.accel_limit 20.0");
-  delay(100);
-  
-  Serial.print("\r");
-  Serial.println("Configuring ODrive Deceleration Limit to 200.0...");
-  odrive_serial.println("w axis0.controller.config.decel_limit 200.0");
-  delay(100);
-  
-  Serial.print("\r");
-  Serial.println("ODrive Setup Complete.");
-  Serial.print("\r");
-  Serial.println("System Setup Complete.\n");
+  Serial.println("Setup complete.\n");
 }
 
+//////////////////////
+// loop() Function
+//////////////////////
 void loop() {
-  // --- SBUS Reading ---
-  bool sbusDataValid = sbus.read(&channels[0], &sbusFailSafe, &sbusLostFrame);
-  
-  // --- VESC Duty Cycle Mapping ---
-  // Map SBUS channel 2 (range 350 to 1700) to duty cycle (0.0 to 1.0).
-  float vescDuty = 0.0;
-  if (sbusDataValid) {
-    vescDuty = (float)(channels[2] - 350) / 1350.0;  // 1700 - 350 = 1350.
-    vescDuty = constrain(vescDuty, 0.0, 1.0);
-    if (vescDuty < 0.01) {
-      vescDuty = 0.0;
+  // ----- Program 1: VESC Duty Cycle Mapping -----
+  bool vescDataValid = UART.getVescValues();
+  bool sbusDataValid1 = sbus.read(&channels[0], &sbusFailSafe, &sbusLostFrame);
+  float realRpm = 0;
+  float duty = 0.0;
+  if (sbusDataValid1) {
+    // Using channel index 1 for VESC mapping (per original logic)
+    int ch = channels[1];
+    if (ch > 1010) {
+      duty = (float)(ch - 1040) / (1700 - 1040);  // maps from 0 at 1010 to +1 at 1700
+    } else if (ch < 970) {
+      duty = (float)(ch - 970) / (970 - 350);     // maps from 0 at 970 to -1 at 350
     } else {
-      // Send duty cycle command to VESC.
-      UART.setDuty(vescDuty);
+      duty = 0.0;
     }
+    if (fabs(duty) < 0.07) {
+      duty = 0.0;
+    } else {
+      UART.setDuty(duty);
+    }
+    realRpm = (float)(UART.data.rpm / 30);
   }
-  
-  // --- ODrive Position Mapping ---
-  // Map SBUS channel 2 (range 410 to 1811) to target position (-10 to +10 rotations).
-  const float sbusMin_OD = 410.0;
-  const float sbusMax_OD = 1811.0;
-  const float posRange = 20.0;  // Total range: 20 rotations.
-  if (sbusDataValid) {
-    float rawValue = (float) channels[2];
-    float normalized = (rawValue - sbusMin_OD) / (sbusMax_OD - sbusMin_OD);
-    lastTargetPosition = normalized * posRange - (posRange / 2.0);  // Maps to -10 to +10.
+  String output1 = "";
+  if (vescDataValid) {
+    output1 += "VESC -> RPM: " + String(realRpm) +
+               ", Voltage: " + String(UART.data.inpVoltage) +
+               ", AmpHours: " + String(UART.data.ampHours) +
+               ", TachAbs: " + String(UART.data.tachometerAbs) + " | ";
+  } else {
+    output1 += "VESC -> No Data | ";
   }
-  
-  // --- Command Outputs ---
-  // VESC: duty cycle command already sent if valid.
-  // ODrive: command the target position with a velocity feed-forward value.
+  if (sbusDataValid1) {
+    output1 += "SBUS -> CH0: " + String(channels[1]) +
+               ", Mapped Duty: " + String(duty, 3);
+  } else {
+    output1 += "SBUS -> No Data";
+  }
+  Serial.println(output1);
+
+  // ----- Program 2: ODrive Position Mapping -----
+  bool sbusDataValid2 = sbus.read(&channels[0], &sbusFailSafe, &sbusLostFrame);
+  const float sbusMin = 410.0f;
+  const float sbusMax = 1811.0f;
+  const float posRange = 4.0f;
+  if (sbusDataValid2) {
+    float rawValue = (float) channels[3];  // using channel index 3 for ODrive mapping
+    float normalized = (rawValue - sbusMin) / (sbusMax - sbusMin);
+    lastTargetPosition = normalized * posRange - 10.0f;
+  }
   odrive.setPosition(lastTargetPosition, 40.0f);
-  
-  // --- Telemetry and Debug Output ---
+
   static unsigned long lastPrintTime = 0;
   if (millis() - lastPrintTime > 100) {
-    // VESC Telemetry.
-    bool vescDataValid = UART.getVescValues();
-    String vescOutput = "";
-    if (vescDataValid) {
-      float realRpm = (float)(UART.data.rpm) / 30.0;
-      vescOutput = "VESC -> RPM: " + String(realRpm, 2) +
-                    ", Voltage: " + String(UART.data.inpVoltage, 2) +
-                    ", AmpHours: " + String(UART.data.ampHours, 2) +
-                    ", TachAbs: " + String(UART.data.tachometerAbs, 2);
-    } else {
-      vescOutput = "VESC -> No Data";
-    }
-    
-    // ODrive Telemetry.
     ODriveFeedback fb = odrive.getFeedback();
-    float odCurrent = odrive.getParameterAsFloat("ibus");
-    float odVoltage = odrive.getParameterAsFloat("vbus_voltage");
-    float odRpm = fb.vel * 60.0;  // Assuming fb.vel is in rev/s.
-    
-    // Print telemetry as CSV with a preceding carriage return.
+    float current = odrive.getParameterAsFloat("ibus");
+    float voltage = odrive.getParameterAsFloat("vbus_voltage");
+    float rpm = fb.vel * 60.0;
     Serial.print("\r");
-    // CSV columns: VESC_RPM, VESC_Voltage, VESC_AmpHours, VESC_Tach, SBUS_CH2, VESC_Duty,
-    // ODrive_TargetPos, ODrive_FeedbackPos, ODrive_Current, ODrive_Voltage, ODrive_RPM.
-    Serial.print((vescDataValid ? String((float)(UART.data.rpm), 2) : "NaN"));
+    Serial.print(lastTargetPosition, 2);
     Serial.print(",");
-    Serial.print((vescDataValid ? String(UART.data.inpVoltage, 2) : "NaN"));
+    Serial.print(fb.pos, 2);
     Serial.print(",");
-    Serial.print((vescDataValid ? String(UART.data.ampHours, 2) : "NaN"));
-    Serial.print(",");
-    Serial.print((vescDataValid ? String(UART.data.tachometerAbs, 2) : "NaN"));
-    Serial.print(",");
-    Serial.print(sbusDataValid ? String(channels[2]) : "NaN");
-    Serial.print(",");
-    Serial.print(String(vescDuty, 3));
-    Serial.print(",");
-    Serial.print(String(lastTargetPosition, 2));
-    Serial.print(",");
-    Serial.print(String(fb.pos, 2));
-    Serial.print(",");
-    if (isnan(odCurrent)) {
+    if (isnan(current)) {
       Serial.print("NaN");
     } else {
-      Serial.print(String(odCurrent, 2));
+      Serial.print(current, 2);
     }
     Serial.print(",");
-    Serial.print(String(odVoltage, 2));
+    Serial.print(voltage, 2);
     Serial.print(",");
-    Serial.println(String(odRpm, 2));
-    
-    // Also print the happy VESC debug message.
-    Serial.print("\r");
-    Serial.println(vescOutput);
-    
+    Serial.println(rpm, 2);
     lastPrintTime = millis();
   }
   
