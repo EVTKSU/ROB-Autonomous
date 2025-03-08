@@ -19,7 +19,6 @@
      - Values above 1010 map to forward throttle; below 970 map to reverse.
      - Duty values below 0.07 (absolute) are filtered.
      - Smoothing is applied to reduce sudden throttle bursts.
-     - An exponential mapping (quadratic) is used for a smoother ramp.
 
    -- ODrive Section --
    ODrive:
@@ -47,7 +46,8 @@
      
    Status LED:
      - Uses built-in LED on pin 13.
-     - Blinks while waiting for calibration trigger; solid after calibration.
+     - Blinks while waiting for calibration trigger.
+     - Stays solid on after calibration.
      
    NOTE: Ensure all devices share a common ground.
 *******************************************************/
@@ -85,8 +85,8 @@ float steeringZeroOffset = 0.0f;
 static float dutyFiltered = 0.0f;
 const float smoothingAlpha = 0.1f;
 
-// Maximum allowed steering distance.
-const float maxSteeringOffset = 1.5f;
+// Maximum allowed steering offset.
+const float maxSteeringOffset = 1.0f;
 
 // Global flag: set to true once the init calibration has been completed.
 bool systemInitialized = false;
@@ -146,13 +146,13 @@ void initCalibration() {
   odrive_serial.println("w axis0.controller.config.input_mode 1");
   delay(100);
   Serial.println("Setting velocity limit to 200.0...");
-  odrive_serial.println("w axis0.controller.config.vel_limit 30.0");
+  odrive_serial.println("w axis0.controller.config.vel_limit 200.0");
   delay(100);
   Serial.println("Setting acceleration limit to 100.0...");
-  odrive_serial.println("w axis0.controller.config.accel_limit 25.0");
+  odrive_serial.println("w axis0.controller.config.accel_limit 100.0");
   delay(100);
   Serial.println("Setting deceleration limit to 100.0...");
-  odrive_serial.println("w axis0.controller.config.decel_limit 50.0");
+  odrive_serial.println("w axis0.controller.config.decel_limit 100.0");
   delay(100);
   
   Serial.println("ODrive calibration complete and running!");
@@ -252,12 +252,8 @@ void loop() {
     } else {
       duty = 0.0;
     }
-    // Apply exponential (quadratic) scaling for a smoother, slower ramp.
-    float throttleExponent = 4.0;  // Adjust exponent as needed for more/less easing.
-    float nonLinearDuty = (duty >= 0) ? pow(duty, throttleExponent) : -pow(-duty, throttleExponent);
-    
     // Apply smoothing to avoid sudden throttle bursts.
-    dutyFiltered = (1 - smoothingAlpha) * dutyFiltered + smoothingAlpha * nonLinearDuty;
+    dutyFiltered = (1 - smoothingAlpha) * dutyFiltered + smoothingAlpha * duty;
     if (fabs(dutyFiltered) < 0.07) {
       dutyFiltered = 0.0;
     }
@@ -280,13 +276,13 @@ void loop() {
     if (ch_steer < 1200 || ch_steer > 1260) {
       float desiredOffset = 0.0f;
       if (ch_steer < 1200) {
-        // For left steering: lower values produce a negative offset.
+        // For left steering: lower values produce a positive offset.
         float normalized = (1200 - ch_steer) / float(1200 - 410);
-        desiredOffset = - normalized * maxSteeringOffset;
-      } else {  // ch_steer > 1260
-        // For right steering: higher values produce a positive offset.
-        float normalized = (ch_steer - 1260) / float(1811 - 1260);
         desiredOffset = normalized * maxSteeringOffset;
+      } else {  // ch_steer > 1260
+        // For right steering: higher values produce a negative offset.
+        float normalized = (ch_steer - 1260) / float(1811 - 1260);
+        desiredOffset = - normalized * maxSteeringOffset;
       }
       currentSteeringOffset = desiredOffset;
       lastSteerUpdateTime = millis();
@@ -307,7 +303,7 @@ void loop() {
   }
   
   // Command the ODrive with the new steering target using a gentle feed-forward velocity.
-  odrive.setPosition(lastTargetPosition, 20.0f);
+  odrive.setPosition(lastTargetPosition, 10.0f);
 
   // Optional: Debug printing every 100 ms.
   static unsigned long lastPrintTime = 0;
