@@ -154,7 +154,7 @@ void initCalibration() {
   Serial.println("Setting deceleration limit to 100.0...");
   odrive_serial.println("w axis0.controller.config.decel_limit 50.0");
   delay(100);
-  
+
   Serial.println("ODrive calibration complete and running!");
 }
 
@@ -170,9 +170,7 @@ void setup() {
   Serial.begin(115200);
   unsigned long serialStart = millis();
   // Wait up to 5 seconds for a USB Serial connection.
-  while (!Serial && (millis() - serialStart < 5000)) {
-    delay(10);
-  }
+ 
   Serial.println("Teensy 4.1 Integrated VESC, ODrive, and SBUS");
   
   // Initialize VESC1 on Serial1
@@ -191,7 +189,7 @@ void setup() {
   // ----- ODrive Setup -----
   odrive_serial.begin(baudrate);
   Serial.println("Established ODrive communication");
-  delay(500);
+  delay(500);!
   
   Serial.println("Waiting for ODrive...");
   unsigned long startTimeOD = millis();

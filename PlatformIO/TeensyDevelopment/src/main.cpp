@@ -134,7 +134,7 @@ void initCalibration() {
   
   // 5. Enable closed loop control.
   unsigned long startTime = millis();
-  while (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL && (millis() - startTime) < 5000) {
+  while (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL && (millis() - startTime < 5000)) {
     odrive.clearErrors();
     odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
     Serial.println("Trying again to enable closed loop control");
@@ -154,7 +154,10 @@ void initCalibration() {
   Serial.println("Setting deceleration limit to 100.0...");
   odrive_serial.println("w axis0.controller.config.decel_limit 50.0");
   delay(100);
-  
+  odrive_serial.println("w axis0.motor.config.current_lim 80.0");
+  delay(100);
+  odrive_serial.println("w axis0.controller.config.current_lim 90.0");
+  delay(100);
   Serial.println("ODrive calibration complete and running!");
 }
 
@@ -166,13 +169,9 @@ void setup() {
   pinMode(STATUS_LED_PIN, OUTPUT);
   digitalWrite(STATUS_LED_PIN, LOW);
   
-  // ----- USB Serial Setup with Timeout -----
+  // ----- USB Serial Setup (for debugging) -----
   Serial.begin(115200);
-  unsigned long serialStart = millis();
-  // Wait up to 5 seconds for a USB Serial connection.
-  while (!Serial && (millis() - serialStart < 5000)) {
-    delay(10);
-  }
+  // Removed waiting for USB connection so the system starts immediately.
   Serial.println("Teensy 4.1 Integrated VESC, ODrive, and SBUS");
   
   // Initialize VESC1 on Serial1
