@@ -43,7 +43,7 @@
      - A lower feed-forward velocity (10.0) is used.
      
    USB Serial:
-     - Used for combined debug output.
+     - Used for combined debug output. Debug messages are sent only if USB is connected.
      
    Status LED:
      - Uses built-in LED on pin 13.
@@ -95,11 +95,16 @@ bool systemInitialized = false;
 // initCalibration() Function
 //////////////////////
 void initCalibration() {
-  Serial.println("Init Calibration Triggered via SBUS Channel 5!");
+  // If USB Serial is available, print debug info
+  if (Serial) {
+    Serial.println("Init Calibration Triggered via SBUS Channel 5!");
+  }
   
   // Perform full ODrive calibration.
   // 1. Motor Calibration.
-  Serial.println("Starting motor calibration...");
+  if (Serial) {
+    Serial.println("Starting motor calibration...");
+  }
   odrive.setState(AXIS_STATE_MOTOR_CALIBRATION);
   delay(4000);
   odrive.clearErrors();
@@ -107,27 +112,35 @@ void initCalibration() {
   // 2. Pre-calibration steering reading.
   ODriveFeedback fb = odrive.getFeedback();
   float preCalZero = fb.pos;
-  Serial.print("Pre-calibration steering zero: ");
-  Serial.println(preCalZero, 2);
+  if (Serial) {
+    Serial.print("Pre-calibration steering zero: ");
+    Serial.println(preCalZero, 2);
+  }
   
   // Wait 3 seconds so we can view the pre-calibration value.
   delay(3000);
   
   // 3. Encoder Offset Calibration.
-  Serial.println("Calibrating steering (encoder offset calibration)...");
+  if (Serial) {
+    Serial.println("Calibrating steering (encoder offset calibration)...");
+  }
   odrive.setState(AXIS_STATE_ENCODER_OFFSET_CALIBRATION);
   delay(4000);
   odrive.clearErrors();
   
   // 4. Post-calibration reading.
   fb = odrive.getFeedback();
-  Serial.print("Post-calibration steering reading: ");
-  Serial.println(fb.pos, 2);
+  if (Serial) {
+    Serial.print("Post-calibration steering reading: ");
+    Serial.println(fb.pos, 2);
+  }
   
   // Force the steering zero offset to remain at the pre-calibration value.
   steeringZeroOffset = preCalZero;
-  Serial.print("Steering zero offset forced to pre-calibration value: ");
-  Serial.println(steeringZeroOffset, 2);
+  if (Serial) {
+    Serial.print("Steering zero offset forced to pre-calibration value: ");
+    Serial.println(steeringZeroOffset, 2);
+  }
   
   // Set target position to the forced zero.
   lastTargetPosition = steeringZeroOffset;
@@ -137,28 +150,40 @@ void initCalibration() {
   while (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL && (millis() - startTime < 5000)) {
     odrive.clearErrors();
     odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
-    Serial.println("Trying again to enable closed loop control");
+    if (Serial) {
+      Serial.println("Trying again to enable closed loop control");
+    }
     delay(10);
   }
   
   // 6. Set configuration parameters.
-  Serial.println("Setting input mode to TRAP_TRAJ...");
+  if (Serial) {
+    Serial.println("Setting input mode to TRAP_TRAJ...");
+  }
   odrive_serial.println("w axis0.controller.config.input_mode 1");
   delay(100);
-  Serial.println("Setting velocity limit to 200.0...");
+  if (Serial) {
+    Serial.println("Setting velocity limit to 200.0...");
+  }
   odrive_serial.println("w axis0.controller.config.vel_limit 30.0");
   delay(100);
-  Serial.println("Setting acceleration limit to 100.0...");
+  if (Serial) {
+    Serial.println("Setting acceleration limit to 100.0...");
+  }
   odrive_serial.println("w axis0.controller.config.accel_limit 25.0");
   delay(100);
-  Serial.println("Setting deceleration limit to 100.0...");
+  if (Serial) {
+    Serial.println("Setting deceleration limit to 100.0...");
+  }
   odrive_serial.println("w axis0.controller.config.decel_limit 50.0");
   delay(100);
   odrive_serial.println("w axis0.motor.config.current_lim 80.0");
   delay(100);
   odrive_serial.println("w axis0.controller.config.current_lim 90.0");
   delay(100);
-  Serial.println("ODrive calibration complete and running!");
+  if (Serial) {
+    Serial.println("ODrive calibration complete and running!");
+  }
 }
 
 //////////////////////
@@ -170,9 +195,12 @@ void setup() {
   digitalWrite(STATUS_LED_PIN, LOW);
   
   // ----- USB Serial Setup (for debugging) -----
+  // Start USB serial without waiting for a connection.
   Serial.begin(115200);
-  // Removed waiting for USB connection so the system starts immediately.
-  Serial.println("Teensy 4.1 Integrated VESC, ODrive, and SBUS");
+  // Do not block waiting for USB Serial to be connected.
+  if (Serial) {
+    Serial.println("Teensy 4.1 Integrated VESC, ODrive, and SBUS");
+  }
   
   // Initialize VESC1 on Serial1
   Serial1.begin(115200);
@@ -189,21 +217,31 @@ void setup() {
   
   // ----- ODrive Setup -----
   odrive_serial.begin(baudrate);
-  Serial.println("Established ODrive communication");
+  if (Serial) {
+    Serial.println("Established ODrive communication");
+  }
   delay(500);
   
-  Serial.println("Waiting for ODrive...");
+  if (Serial) {
+    Serial.println("Waiting for ODrive...");
+  }
   unsigned long startTimeOD = millis();
   while (odrive.getState() == AXIS_STATE_UNDEFINED && (millis() - startTimeOD < 15000)) {
     delay(100);
   }
   if (odrive.getState() == AXIS_STATE_UNDEFINED) {
-    Serial.println("ODrive not found! Proceeding without ODrive.");
+    if (Serial) {
+      Serial.println("ODrive not found! Proceeding without ODrive.");
+    }
   } else {
-    Serial.println("Found ODrive! Waiting for init calibration trigger via SBUS channel 5...");
+    if (Serial) {
+      Serial.println("Found ODrive! Waiting for init calibration trigger via SBUS channel 5...");
+    }
   }
   
-  Serial.println("Setup complete. System is idle until calibration is triggered.");
+  if (Serial) {
+    Serial.println("Setup complete. System is idle until calibration is triggered.");
+  }
 }
 
 //////////////////////
@@ -212,6 +250,34 @@ void setup() {
 void loop() {
   // Read SBUS data once per loop.
   bool sbusDataValid = sbus.read(&channels[0], &sbusFailSafe, &sbusLostFrame);
+
+  // ----- ODrive Error Clearing and Re-Calibration (using SBUS channel 4) -----
+  static bool errorClearFlag = false;
+  if (sbusDataValid) {
+    int ch_clear = channels[4];
+    if (ch_clear > 1500 && !errorClearFlag) {
+      errorClearFlag = true;
+      // If the ODrive is not in closed loop control, assume a fault and re-run calibration.
+      if (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL) {
+        if (Serial) {
+          Serial.println("ODrive fault detected via SBUS channel 4. Recalibrating...");
+        }
+        odrive.clearErrors();
+        // Reset system flag to allow re-calibration.
+        systemInitialized = false;
+        initCalibration();
+        systemInitialized = true;
+      } else {
+        if (Serial) {
+          Serial.println("SBUS channel 4 activated: Clearing ODrive errors.");
+        }
+        odrive.clearErrors();
+      }
+    }
+    if (ch_clear < 1500 && errorClearFlag) {
+      errorClearFlag = false;
+    }
+  }
 
   // Blink status LED if system is not yet initialized.
   static unsigned long lastLedToggle = 0;
@@ -231,9 +297,10 @@ void loop() {
       initCalibration();
       systemInitialized = true;
     } else {
-      // Print current SBUS channel 5 value for debugging.
-      Serial.print("Waiting for init calibration trigger, SBUS channel 5: ");
-      Serial.println(sbusDataValid ? channels[5] : 0);
+      if (Serial) {
+        Serial.print("Waiting for init calibration trigger, SBUS channel 5: ");
+        Serial.println(sbusDataValid ? channels[5] : 0);
+      }
       delay(100);
       return;  // Skip the rest of the loop until calibration is done.
     }
@@ -312,15 +379,17 @@ void loop() {
   static unsigned long lastPrintTime = 0;
   if (millis() - lastPrintTime > 100) {
     ODriveFeedback fb = odrive.getFeedback();
-    Serial.print("Steering Target: ");
-    Serial.print(lastTargetPosition, 2);
-    Serial.print(" | ODrive Pos: ");
-    Serial.print(fb.pos, 2);
-    Serial.print(" | VESC Duty: ");
-    Serial.print(dutyFiltered, 3);
-    Serial.print(" | VESC RPM: ");
-    Serial.print((float)(vesc1.data.rpm) / 30.0, 1);
-    Serial.println();
+    if (Serial) {
+      Serial.print("Steering Target: ");
+      Serial.print(lastTargetPosition, 2);
+      Serial.print(" | ODrive Pos: ");
+      Serial.print(fb.pos, 2);
+      Serial.print(" | VESC Duty: ");
+      Serial.print(dutyFiltered, 3);
+      Serial.print(" | VESC RPM: ");
+      Serial.print((float)(vesc1.data.rpm) / 30.0, 1);
+      Serial.println();
+    }
     lastPrintTime = millis();
   }
   
