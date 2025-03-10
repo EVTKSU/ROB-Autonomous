@@ -49,4 +49,12 @@ void updateVescControl() {
     // Issue current command to both VESCs.
     vesc1.setCurrent(currentCommand);
     vesc2.setCurrent(currentCommand);
+    
+    if (vesc1.getVescValues()) {
+        Serial.print("RPM: ");
+        Serial.println(vesc1.data.rpm);
+    
+        Serial.print("Input Voltage: ");
+        Serial.println(vesc1.data.inpVoltage);
+    }
 }
