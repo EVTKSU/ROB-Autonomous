@@ -5,7 +5,6 @@
 
 #include <Arduino.h>
 #include <SBUS.h>
-#include "ODriveTeensyCAN.h"
 
 
 // SBUS Configuration:
