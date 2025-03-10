@@ -15,40 +15,38 @@ void setupVesc() {
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
-// VESC Current Control (using SBUS channel 1) WITH REVERSE
+// VESC RPM Control (using SBUS channel 1) WITH REVERSE
 // SBUS range: ~350..1700, neutral ~990, deadband ±20.
-// If above (neutral+deadband), forward current up to MAX_CURRENT.
-// If below (neutral-deadband), reverse current down to -MAX_CURRENT.
-// Otherwise, coast at 0 A.
+// For values above (neutral + deadband), map linearly to 0 - 7500 RPM (forward).
+// For values below (neutral - deadband), map linearly to 0 to -7500 RPM (reverse).
+// Within deadband, command 0 RPM.
 /////////////////////////////////////////////////////////////////////////////////////
 void updateVescControl() {
-    // VESC current control uses SBUS channel 1.
+    // VESC RPM control uses SBUS channel 1.
     int ch_vesc = channels[1];
     const int neutral = 990;  // throttle value at zero position
     const int deadband = 20;  // +/- deadband around neutral
     
-    float currentCommand = 0.0f;
+    float rpmCommand = 0.0f;
     
     if (ch_vesc > (neutral + deadband)) {
-        float forwardRange = (1700.0f - (neutral + deadband));
-        currentCommand = (float)(ch_vesc - (neutral + deadband)) / forwardRange;
-        if (currentCommand < 0.0f) currentCommand = 0.0f;
-        if (currentCommand > 1.0f) currentCommand = 1.0f;
-        currentCommand *= MAX_CURRENT;
+        float forwardRange = 1700.0f - (neutral + deadband);
+        rpmCommand = ((float)ch_vesc - (neutral + deadband)) / forwardRange * 7500.0f;
+        if (rpmCommand < 0.0f) rpmCommand = 0.0f;
+        if (rpmCommand > 7500.0f) rpmCommand = 7500.0f;
     } else if (ch_vesc < (neutral - deadband)) {
-        float reverseRange = (float)((neutral - deadband) - 350);
-        float proportion = (float)((neutral - deadband) - ch_vesc) / reverseRange;
-        if (proportion < 0.0f) proportion = 0.0f;
-        if (proportion > 1.0f) proportion = 1.0f;
-        currentCommand = -proportion * MAX_CURRENT;
+        float reverseRange = (neutral - deadband) - 350.0f;
+        float reverseProportion = ((neutral - deadband) - (float)ch_vesc) / reverseRange;
+        if (reverseProportion < 0.0f) reverseProportion = 0.0f;
+        if (reverseProportion > 1.0f) reverseProportion = 1.0f;
+        rpmCommand = -reverseProportion * 7500.0f;
     } else {
-        // Within deadband, coast.
-        currentCommand = 0.0f;
+        rpmCommand = 0.0f;
     }
     
-    // Issue current command to both VESCs.
-    vesc1.setCurrent(currentCommand);
-    vesc2.setCurrent(currentCommand);
+    // Issue RPM command to both VESCs.
+    vesc1.setRPM(rpmCommand);
+    vesc2.setRPM(rpmCommand);
     
     if (vesc1.getVescValues()) {
         Serial.print("RPM: ");
