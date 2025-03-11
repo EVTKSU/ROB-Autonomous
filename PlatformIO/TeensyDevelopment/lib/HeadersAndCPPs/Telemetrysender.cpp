@@ -23,16 +23,16 @@ void setupTelemetryEthernet() {
 
 // Sends a UDP packet containing telemetry in CSV format.
 // Data fields (in order):
-// ODrive position, ODrive velocity,
+// ODrive vbus voltage, ODrive bus current, ODrive position, ODrive velocity,
 // VESC1 average input current, VESC1 input voltage, VESC1 rpm,
 // VESC2 average input current, VESC2 input voltage, VESC2 rpm.
 void sendTelemetry() {
     // Get ODrive telemetry.
     ODriveFeedback fb = odrive.getFeedback();
-    float od_pos = fb.pos;   // ODrive position
-    float od_vel = fb.vel;   // ODrive velocity.
+    float od_pos = fb.pos;    // ODrive position
+    float od_vel = fb.vel;    // ODrive velocity
     float od_vol = odrive.getParameterAsFloat("vbus_voltage");
-    float od_vol = odrive.getParameterAsFloat("ibus");
+    float od_cur = odrive.getParameterAsFloat("ibus");
 
     // Retrieve telemetry from both VESC modules.
     bool vesc1_ok = vesc1.getVescValues();
@@ -47,13 +47,13 @@ void sendTelemetry() {
     int   vesc2_rpm     = vesc2_ok ? vesc2.data.rpm : 0;
 
     // Format the telemetry packet as a comma-separated string.
-    // Order: ODrive position, ODrive velocity,
+    // Order: ODrive vbus voltage, ODrive bus current, ODrive position, ODrive velocity,
     //        VESC1 current, VESC1 voltage, VESC1 rpm,
     //        VESC2 current, VESC2 voltage, VESC2 rpm.
     char packetBuffer[256];
     snprintf(packetBuffer, sizeof(packetBuffer),
-             "%.2f,%.2f,%.2f,%.2f,%d,%.2f,%.2f,%d",
-             od_pos, od_vel,
+             "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%.2f,%.2f,%d",
+             od_vol, od_cur, od_pos, od_vel,
              vesc1_current, vesc1_voltage, vesc1_rpm,
              vesc2_current, vesc2_voltage, vesc2_rpm);
 
@@ -65,34 +65,4 @@ void sendTelemetry() {
     // Debug output.
     Serial.print("Telemetry packet sent: ");
     Serial.println(packetBuffer);
-}
-
-//////////////////////////////////////
-// Main program
-//////////////////////////////////////
-void setup() {
-    Serial.begin(9600);
-
-    // Initialize control modules.
-    setupVesc();
-    setupOdrv();
-    setupSbus();
-
-    // Initialize Ethernet for telemetry.
-    setupTelemetryEthernet();
-}
-
-void loop() {
-    // Update SBUS channels and then control VESC and ODrive independently.
-    if (updateSbusData()) {
-        updateVescControl();
-        updateOdrvControl();
-    }
-    
-    // Send telemetry every 100 milliseconds.
-    static unsigned long lastTelemetryTime = 0;
-    if (millis() - lastTelemetryTime >= 100) {
-        sendTelemetry();
-        lastTelemetryTime = millis();
-    }
 }
