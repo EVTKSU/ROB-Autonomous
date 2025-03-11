@@ -7,6 +7,16 @@
 #include <SBUS.h>
 #include <SoftwareSerial.h>
 
+// Include Teensy Ethernet libraries.
+#include <NativeEthernet.h>
+#include <NativeEthernetUdp.h>
+
+// Ethernet configuration for Teensy.
+extern byte mac[];       // Defined in a single source file.
+extern IPAddress ip;     // Defined in a single source file.
+#define UDP_REMOTE_IP IPAddress(192, 168, 0, 100)
+#define UDP_REMOTE_PORT 8888
+
 // Common definitions.
 #define STATUS_LED_PIN 13
 static const float MAX_CURRENT = 40.0f;
@@ -27,4 +37,7 @@ void updateVescControl();
 void setupOdrv();
 void updateOdrvControl();
 
+// --- Telemetry Sending Prototype ---
+void sendTelemetry();
+void setupTelemetryEthernet();
 #endif
