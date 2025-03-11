@@ -128,8 +128,8 @@ void updateOdrvControl() {
         digitalWrite(STATUS_LED_PIN, HIGH);
     }
     
-    // Handle error clearing and recalibration (SBUS channel 4).
-    int ch_clear = channels[4];
+    // Handle error clearing and recalibration (SBUS channel 6).
+    int ch_clear = channels[6];
     if (ch_clear > 1500 && !errorClearFlag) {
         errorClearFlag = true;
         if (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL) {

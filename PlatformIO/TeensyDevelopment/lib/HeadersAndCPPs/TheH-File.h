@@ -18,26 +18,41 @@ extern IPAddress ip;     // Defined in a single source file.
 #define UDP_REMOTE_PORT 8888
 
 // Common definitions.
+#define ESTOP_PIN 7            // Digital pin to drive the relay for ebrake
+#define ESTOP_THRESHOLD 1000   // SBUS channel 6 threshold for deadman switch activation
 #define STATUS_LED_PIN 13
 static const float MAX_CURRENT = 40.0f;
 static const float MAX_STEERING_OFFSET = 1.5f;
 
-// Global SBUS channel array.
-extern uint16_t channels[10];
+typedef enum {
+    STATE_IDLE,
+    STATE_RC,
+    STATE_AUTONOMOUS,
+    STATE_EMERGENCY
+} SystemState;
 
-// --- SBUS Prototypes ---
+
+extern uint16_t channels[10];
+extern SystemState currentState;
+// --- State Machine ---
+void updateStateMachine();
+
+// --- SBUS  ---
 void setupSbus();
 bool updateSbusData();
 
-// --- VESC Controller Prototypes ---
+// --- VESC Controller  ---
 void setupVesc();
 void updateVescControl();
 
-// --- ODrive Controller Prototypes ---
+// --- ODrive Controller  ---
 void setupOdrv();
 void updateOdrvControl();
 
-// --- Telemetry Sending Prototype ---
+// --- Telemetry Sending  ---
 void sendTelemetry();
 void setupTelemetryEthernet();
 #endif
+
+
+
