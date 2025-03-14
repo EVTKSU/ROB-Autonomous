@@ -1,28 +1,30 @@
 #include "TheH-File.h"
 
+
+
 void setup() {
     Serial.begin(9600);
-
-    // Initialize modules.
+    
+    // Initialize control modules.
     setupVesc();
     setupOdrv();
     setupSbus();
+    
+    // Initialize Ethernet for telemetry.
     setupTelemetryEthernet();
-
-    // Configure the emergency (E-stop) relay pin.
-    pinMode(ESTOP_PIN, OUTPUT);
-    digitalWrite(ESTOP_PIN, LOW);
 }
 
 void loop() {
-    // Update SBUS channels and then control modules.
+    // Update SBUS channels and then control VESC and ODrive independently.
     if (updateSbusData()) {
         updateVescControl();
         updateOdrvControl();
     }
     
-    // Update the state machine (includes emergency check).
-    updateStateMachine();
-    
-    // Other tasks (e.g., telemetry) follow.
+    // Send telemetry every 100 milliseconds.
+    static unsigned long lastTelemetryTime = 0;
+    if (millis() - lastTelemetryTime >= 100) {
+        sendTelemetry();
+        lastTelemetryTime = millis();
+    }
 }
