@@ -10,8 +10,7 @@ void setup() {
     setupOdrv();
     setupSbus();
     
-    // Initialize Ethernet for telemetry.
-    setupTelemetryEthernet();
+
 }
 
 void loop() {
@@ -21,10 +20,6 @@ void loop() {
         updateOdrvControl();
     }
     
-    // Send telemetry every 100 milliseconds.
-    static unsigned long lastTelemetryTime = 0;
-    if (millis() - lastTelemetryTime >= 100) {
-        sendTelemetry();
-        lastTelemetryTime = millis();
+ 
     }
-}
+
