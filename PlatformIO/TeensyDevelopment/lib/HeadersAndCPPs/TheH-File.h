@@ -34,10 +34,6 @@ typedef enum {
 
 extern uint16_t channels[10];
 extern SystemState currentState;
-extern byte mac[];
-extern IPAddress ip;
-
-
 // --- State Machine ---
 void updateStateMachine();
 
