@@ -13,7 +13,7 @@
 // Common definitions.
 #define STATUS_LED_PIN 13
 static const float MAX_CURRENT = 40.0f;
-static const float MAX_STEERING_OFFSET = 1.5f;
+static const float MAX_STEERING_OFFSET = 2.0f;
 
 // Global SBUS channel array.
 extern uint16_t channels[10];

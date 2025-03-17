@@ -194,7 +194,7 @@ void updateOdrvControl() {
         }
     }
     lastTargetPosition = steeringZeroOffset + currentSteeringOffset;
-    odrive.setPosition(lastTargetPosition, 20.0f);
+    odrive.setPosition(lastTargetPosition, 27.0f);
     
     // Debug output every ~100 ms.
     if (millis() - lastPrintTime > 100) {
