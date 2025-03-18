@@ -48,11 +48,9 @@ void updateVescControl() {
     vesc1.setRPM(rpmCommand);
     vesc2.setRPM(rpmCommand);
     
+    // Instead of rolling prints, update the debug string if new values are available.
     if (vesc1.getVescValues()) {
-        Serial.print("RPM: ");
-        Serial.println(vesc1.data.rpm);
-    
-        Serial.print("Input Voltage: ");
-        Serial.println(vesc1.data.inpVoltage);
+        vescDebug = "RPM: " + String(vesc1.data.rpm) + "\r\n" +
+                    "Input Voltage: " + String(vesc1.data.inpVoltage);
     }
 }

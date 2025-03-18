@@ -7,9 +7,6 @@
 #include <SBUS.h>
 #include <SoftwareSerial.h>
 
-
-
-
 // Common definitions.
 #define STATUS_LED_PIN 13
 static const float MAX_CURRENT = 40.0f;
@@ -17,6 +14,13 @@ static const float MAX_STEERING_OFFSET = 2.4f;
 
 // Global SBUS channel array.
 extern uint16_t channels[10];
+
+// Global ODrive system initialization flag.
+extern bool systemInitialized;
+
+// Global debug strings for aggregated output.
+extern String vescDebug;
+extern String odrvDebug;
 
 // --- SBUS Prototypes ---
 void setupSbus();
@@ -29,6 +33,5 @@ void updateVescControl();
 // --- ODrive Controller Prototypes ---
 void setupOdrv();
 void updateOdrvControl();
-
 
 #endif

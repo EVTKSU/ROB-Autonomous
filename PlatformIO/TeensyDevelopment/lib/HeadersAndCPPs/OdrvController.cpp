@@ -17,8 +17,8 @@ static unsigned long lastPrintTime = 0;
 // Performs calibration and forces the steering zero offset.
 void initCalibration() {
     if (Serial) {
-        Serial.println("Init Calibration Triggered via SBUS Channel 5!");
-        Serial.println("Starting motor calibration...");
+        Serial.print("Init Calibration Triggered via SBUS Channel 5!\r\n");
+        Serial.print("Starting motor calibration...\r\n");
     }
     odrive.setState(AXIS_STATE_MOTOR_CALIBRATION);
     delay(4000);
@@ -29,13 +29,14 @@ void initCalibration() {
     float preCalZero = fb.pos;
     if (Serial) {
         Serial.print("Pre-calibration steering zero: ");
-        Serial.println(preCalZero, 2);
+        Serial.print(String(preCalZero, 2));
+        Serial.print("\r\n");
     }
     delay(3000);
     
     // Encoder offset calibration.
     if (Serial) {
-        Serial.println("Calibrating steering (encoder offset calibration)...");
+        Serial.print("Calibrating steering (encoder offset calibration)...\r\n");
     }
     odrive.setState(AXIS_STATE_ENCODER_OFFSET_CALIBRATION);
     delay(4000);
@@ -45,14 +46,16 @@ void initCalibration() {
     fb = odrive.getFeedback();
     if (Serial) {
         Serial.print("Post-calibration steering reading: ");
-        Serial.println(fb.pos, 2);
+        Serial.print(String(fb.pos, 2));
+        Serial.print("\r\n");
     }
     
     // Force steering zero offset to pre-calibration value.
     steeringZeroOffset = preCalZero;
     if (Serial) {
         Serial.print("Steering zero offset forced to: ");
-        Serial.println(steeringZeroOffset, 2);
+        Serial.print(String(steeringZeroOffset, 2));
+        Serial.print("\r\n");
     }
     
     lastTargetPosition = steeringZeroOffset;
@@ -63,13 +66,13 @@ void initCalibration() {
         odrive.clearErrors();
         odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
         if (Serial) {
-            Serial.println("Trying again to enable closed loop control");
+            Serial.print("Trying again to enable closed loop control\r\n");
         }
         delay(10);
     }
     
     if (Serial) {
-        Serial.println("Setting input mode to TRAP_TRAJ...");
+        Serial.print("Setting input mode to TRAP_TRAJ...\r\n");
     }
     odrive_serial.println("w axis0.controller.config.input_mode 1"); // trap traj mode
     delay(100);
@@ -77,7 +80,7 @@ void initCalibration() {
     delay(100);
     odrive_serial.println("w axis0.controller.config.accel_limit 25.0"); // acceleration limit
     delay(100);
-    odrive_serial.println("w axis0.controller.config.decel_limit 50.0"); // decelleration limit
+    odrive_serial.println("w axis0.controller.config.decel_limit 50.0"); // deceleration limit
     delay(100);
     odrive_serial.println("w axis0.motor.config.current_lim 80.0"); // current limit at motor level
     delay(100);
@@ -85,18 +88,18 @@ void initCalibration() {
     delay(100);
     
     if (Serial) {
-        Serial.println("ODrive calibration complete and running!");
+        Serial.print("ODrive calibration complete and running!\r\n");
     }
 }
 
 void setupOdrv() {
     odrive_serial.begin(115200);
     if (Serial) {
-        Serial.println("Established ODrive communication");
+        Serial.print("Established ODrive communication\r\n");
     }
     delay(500);
     if (Serial) {
-        Serial.println("Waiting for ODrive...");
+        Serial.print("Waiting for ODrive...\r\n");
     }
     unsigned long startTimeOD = millis();
     while (odrive.getState() == AXIS_STATE_UNDEFINED && (millis() - startTimeOD < 15000)) {
@@ -104,15 +107,15 @@ void setupOdrv() {
     }
     if (odrive.getState() == AXIS_STATE_UNDEFINED) {
         if (Serial) {
-            Serial.println("ODrive not found! Proceeding without ODrive.");
+            Serial.print("ODrive not found! Proceeding without ODrive.\r\n");
         }
     } else {
         if (Serial) {
-            Serial.println("Found ODrive! Waiting for calibration trigger via SBUS channel 5...");
+            Serial.print("Found ODrive! Waiting for calibration trigger via SBUS channel 5...\r\n");
         }
     }
     if (Serial) {
-        Serial.println("ODrive setup complete. System idle until calibration.");
+        Serial.print("ODrive setup complete. System idle until calibration.\r\n");
     }
 }
 
@@ -134,7 +137,7 @@ void updateOdrvControl() {
         errorClearFlag = true;
         if (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL) {
             if (Serial) {
-                Serial.println("ODrive fault detected via SBUS channel 4. Recalibrating...");
+                Serial.print("ODrive fault detected via SBUS channel 4. Recalibrating...\r\n");
             }
             odrive.clearErrors();
             systemInitialized = false;
@@ -142,7 +145,7 @@ void updateOdrvControl() {
             systemInitialized = true;
         } else {
             if (Serial) {
-                Serial.println("SBUS channel 4 activated: Clearing ODrive errors.");
+                Serial.print("SBUS channel 4 activated: Clearing ODrive errors.\r\n");
             }
             odrive.clearErrors();
         }
@@ -157,25 +160,20 @@ void updateOdrvControl() {
             initCalibration();
             systemInitialized = true;
         } else {
-            if (Serial) {
-                Serial.print("Waiting for calibration trigger, SBUS channel 5: ");
-                Serial.println(channels[5]);
-            }
+            // One-time calibration message; not part of the continuously updated block.
+            Serial.print("Waiting for calibration trigger, SBUS channel 5: ");
+            Serial.print(String(channels[5]));
+            Serial.print("\r\n");
             return;
         }
     }
     
     // Natural mode determination:
-    // When calibrated (systemInitialized true), the system operates in RC mode by default.
-    // If SBUS channel 6 exceeds 1000, autonomous mode is triggered.
+    // When calibrated, if SBUS channel 6 exceeds 1000, autonomous mode is active.
     if (channels[6] > 1000) {
-        // Autonomous mode branch.
-        if (Serial) {
-            Serial.println("Autonomous mode active.");
-        }
-        // [Autonomous mode control logic goes here]
-        // When SBUS channel 6 drops below or equals 1000, the code naturally executes the RC mode below.
-        return; // Skip the RC steering control during autonomous mode.
+        // Autonomous mode active—this branch skips RC mode.
+        odrvDebug = "Autonomous mode active.";
+        return;
     }
     
     // RC mode: ODrive steering control using SBUS channel 3.
@@ -209,18 +207,12 @@ void updateOdrvControl() {
     lastTargetPosition = steeringZeroOffset + currentSteeringOffset;
     odrive.setPosition(lastTargetPosition, 27.0f);
     
-    // Debug output every ~100 ms.
+    // Instead of rolling prints, update the debug string once every ~100 ms.
     if (millis() - lastPrintTime > 100) {
         ODriveFeedback fb = odrive.getFeedback();
-        if (Serial) {
-            Serial.print("Steering Target: ");
-            Serial.print(lastTargetPosition, 2);
-            Serial.print(" | ODrive Pos: ");
-            Serial.print(fb.pos, 2);
-            Serial.print(" | CH3: ");
-            Serial.print(channels[3]);
-            Serial.println();
-        }
+        odrvDebug = "Steering Target: " + String(lastTargetPosition, 2) +
+                    " | ODrive Pos: " + String(fb.pos, 2) +
+                    " | CH3: " + String(channels[3]);
         lastPrintTime = millis();
     }
 }
