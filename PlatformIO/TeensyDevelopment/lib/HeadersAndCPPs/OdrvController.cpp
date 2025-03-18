@@ -79,7 +79,7 @@ void initCalibration() {
     delay(100);
     odrive_serial.println("w axis0.controller.config.decel_limit 50.0"); // decelleration limit
     delay(100);
-    odrive_serial.println("w axis0.motor.config.current_lim 80.0"); //  current limit at motor level
+    odrive_serial.println("w axis0.motor.config.current_lim 80.0"); // current limit at motor level
     delay(100);
     odrive_serial.println("w axis0.controller.config.current_lim 90.0"); // current limit of controller 
     delay(100);
@@ -165,7 +165,20 @@ void updateOdrvControl() {
         }
     }
     
-    // ODrive steering control using SBUS channel 3.
+    // Natural mode determination:
+    // When calibrated (systemInitialized true), the system operates in RC mode by default.
+    // If SBUS channel 6 exceeds 1000, autonomous mode is triggered.
+    if (channels[6] > 1000) {
+        // Autonomous mode branch.
+        if (Serial) {
+            Serial.println("Autonomous mode active.");
+        }
+        // [Autonomous mode control logic goes here]
+        // When SBUS channel 6 drops below or equals 1000, the code naturally executes the RC mode below.
+        return; // Skip the RC steering control during autonomous mode.
+    }
+    
+    // RC mode: ODrive steering control using SBUS channel 3.
     const unsigned long steerHoldTime = 300;
     const float steeringDecayRate = 0.005f;
     int ch_steer = channels[3];
