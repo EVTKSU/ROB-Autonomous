@@ -168,13 +168,7 @@ void updateOdrvControl() {
         }
     }
     
-    // Natural mode determination:
-    // When calibrated, if SBUS channel 6 exceeds 1000, autonomous mode is active.
-    if (channels[6] > 1000) {
-        // Autonomous mode active—this branch skips RC mode.
-        odrvDebug = "Autonomous mode active.";
-        return;
-    }
+  
     
     // RC mode: ODrive steering control using SBUS channel 3.
     const unsigned long steerHoldTime = 300;

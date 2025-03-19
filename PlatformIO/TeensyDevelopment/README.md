@@ -20,3 +20,11 @@
     - Paste code from file to run in src\main.cpp
 
 ### Side note: any future PlatformIO projects go under the PlatformIO directory
+
+
+# why doesnst it compile?!?
+    -make sure that the ethernet max packet size in the teensy library is increased to 64. it's limited by default.
+    
+# what is the natural state machine? 
+
+    - making a proper state machine setup always nukes the whole codebase every time. i've tried 6 times. please don't ask.

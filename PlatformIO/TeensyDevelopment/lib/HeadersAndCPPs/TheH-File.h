@@ -6,6 +6,10 @@
 #include <ODriveUART.h>
 #include <SBUS.h>
 #include <SoftwareSerial.h>
+#include <NativeEthernet.h>
+#include <NativeEthernetUdp.h>
+
+enum EVTstate {Idle, Auto, RC, Oops};
 
 // Common definitions.
 #define STATUS_LED_PIN 13
@@ -22,6 +26,7 @@ extern bool systemInitialized;
 extern String vescDebug;
 extern String odrvDebug;
 
+extern EVTstate currentState;
 // --- SBUS Prototypes ---
 void setupSbus();
 bool updateSbusData();
@@ -33,5 +38,12 @@ void updateVescControl();
 // --- ODrive Controller Prototypes ---
 void setupOdrv();
 void updateOdrvControl();
+
+// --- UDP Telemetry Prototypes ---
+// These functions are implemented in UDP_Telemetry.cpp.
+void setupTelemetryUDP();
+// --- Autonomous Mode Prototype ---
+// Autonomous mode logic is implemented in AutonomousMode.cpp.
+void updateAutonomousMode();
 
 #endif
