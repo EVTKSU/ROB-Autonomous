@@ -19,6 +19,9 @@ static const float MAX_STEERING_OFFSET = 2.4f;
 // Global SBUS channel array.
 extern uint16_t channels[10];
 
+// Global EthernetUDP object for receiving UDP packets.
+extern EthernetUDP Udp;  // Used for raw UDP reception.
+
 // Global ODrive system initialization flag.
 extern bool systemInitialized;
 
