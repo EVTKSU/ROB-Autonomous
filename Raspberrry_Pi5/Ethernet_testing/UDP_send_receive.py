@@ -39,17 +39,19 @@ def sender_loop():
     Continuously send UDP packets.
     """
     sock_send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    j = 0
+    i = 0
     while True:
-        i = round(j / 1000, 3)
         steering_angle = round(i - 50, 3)
         throttle = i
         emergency = 1 if (i > 90 or i < 10) else 0
         message = f"{steering_angle},{throttle},{emergency}"
         send_udp_message(message, sock_send)
-        # Sleep interval decreases with j (modify as needed)
-        time.sleep(1 / (j + 1))
-        j += 1
+        
+        time.sleep(0.25)
+        if i > 100:
+            i = 0
+        else:
+            i += 1
 
 def receiver_loop():
     """
