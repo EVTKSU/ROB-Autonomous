@@ -23,7 +23,7 @@ EthernetUDP Udp;  // UDP object for receiving command packets
 
 void setup() {
   Serial.begin(9600);
-
+ 
   Serial.println("Initializing Ethernet...");
   Ethernet.begin(mac, ip);
   delay(2000); // Allow time for Ethernet initialization
@@ -60,12 +60,21 @@ void setup() {
   setupVesc();
   setupOdrv();
 
-  // Additional initialization can be added here if needed
+
 }
+
+  
+
     void loop() {
+
+       
+
+
+
         if (updateSbusData()) {
             if (channels[6] > 1000) {
                 updateAutonomousMode();
+                
                 odrvDebug = "Autonomous mode active.";
                 // Check for incoming UDP command packets and output them via Serial
                 

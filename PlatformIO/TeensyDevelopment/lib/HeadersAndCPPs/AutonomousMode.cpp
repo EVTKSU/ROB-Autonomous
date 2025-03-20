@@ -24,5 +24,5 @@ void updateAutonomousMode() {
 
     // Now call the new sendTelemetry function with both VESC and ODrive values.
     sendTelemetry(rpm, vescVoltage, odrvVoltage, vescCurrent, odrvCurrent, steeringAngle);
-
+     receiveUdp();
 }

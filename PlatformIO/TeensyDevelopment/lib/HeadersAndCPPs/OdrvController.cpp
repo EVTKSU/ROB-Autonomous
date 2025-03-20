@@ -26,7 +26,7 @@ void initCalibration() {
     
     // Read pre-calibration steering value.
     ODriveFeedback fb = odrive.getFeedback();
-    float preCalZero = 0.00; // i overrided it so it won't find some bullshit anymore
+    float preCalZero = fb.pos; // i undid the override it fucked it all up
     if (Serial) {
         Serial.print("Pre-calibration steering zero: ");
         Serial.print(String(preCalZero, 2));
