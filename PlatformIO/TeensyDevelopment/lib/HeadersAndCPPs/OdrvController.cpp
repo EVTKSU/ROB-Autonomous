@@ -18,7 +18,6 @@ static unsigned long lastPrintTime = 0;
 void initCalibration() {
     if (Serial) {
         Serial.print("Init Calibration Triggered via SBUS Channel 5!\r\n");
-        Serial.print("Starting motor calibration...\r\n");
     }
     odrive.setState(AXIS_STATE_MOTOR_CALIBRATION);
     delay(4000);
@@ -76,15 +75,15 @@ void initCalibration() {
     }
     odrive_serial.println("w axis0.controller.config.input_mode 1"); // trap traj mode
     delay(100);
-    odrive_serial.println("w axis0.controller.config.vel_limit 30.0"); // velocity limit
-    delay(100);
-    odrive_serial.println("w axis0.controller.config.accel_limit 25.0"); // acceleration limit
-    delay(100);
-    odrive_serial.println("w axis0.controller.config.decel_limit 50.0"); // deceleration limit
-    delay(100);
-    odrive_serial.println("w axis0.motor.config.current_lim 80.0"); // current limit at motor level
-    delay(100);
-    odrive_serial.println("w axis0.controller.config.current_lim 90.0"); // current limit of controller 
+    // odrive_serial.println("w axis0.controller.config.vel_limit 30.0"); // velocity limit
+    // delay(100);
+    // odrive_serial.println("w axis0.controller.config.accel_limit 25.0"); // acceleration limit
+    // delay(100);
+    // odrive_serial.println("w axis0.controller.config.decel_limit 50.0"); // deceleration limit
+    // delay(100);
+    // odrive_serial.println("w axis0.motor.config.current_lim 80.0"); // current limit at motor level
+    // delay(100);
+    // odrive_serial.println("w axis0.controller.config.current_lim 90.0"); // current limit of controller 
     delay(100);
     
     if (Serial) {
