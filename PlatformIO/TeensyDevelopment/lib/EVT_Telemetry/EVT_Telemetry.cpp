@@ -70,8 +70,8 @@ void sendTelemetry(float rpm, float vescVoltage, float odrvVoltage, float avgMot
            rpm, vescVoltage, odrvVoltage, avgMotorCurrent, odrvCurrent, steeringAngle);
   
   // Display telemetry data on Serial.
-  Serial.print("Sending telemetry: ");
-  Serial.println(telemetryPacketBuffer);
+ // Serial.print("Sending telemetry: ");
+  //Serial.println(telemetryPacketBuffer);
   
   Udp.beginPacket(telemetryDestIP, TELEMETRY_DEST_PORT);
   Udp.write(telemetryPacketBuffer);
