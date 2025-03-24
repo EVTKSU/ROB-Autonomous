@@ -90,7 +90,7 @@ void receiveUdp() {
     Serial.println(autoBuffer);
     setDataFromUDP(std::string(autoBuffer));
     
-    // Display parsed telemetry data on Serial.
+    // Display parsed autonomous data on Serial.
     Serial.println("Parsed Telemetry Data:");
     Serial.print("Steering Angle: ");
     Serial.println(steering_angle);
