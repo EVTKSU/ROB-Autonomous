@@ -2,7 +2,7 @@
 #include <sstream>
 #include "EVT_VescDriver.h"
 #include "EVT_ODriver.h"
-#include "EVT_Telemetry.h"
+#include "EVT_Ethernet.h"
 
 // Global variable for UDP data processing.
 float raw_throttle = 0.0;
