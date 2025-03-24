@@ -14,7 +14,7 @@ extern byte mac[];
 // Telemetry function prototypes.
 void setupTelemetryUDP();
 void sendTelemetry(float rpm, float vescVoltage, float odrvVoltage, float avgMotorCurrent, float odrvCurrent, float steeringAngle);
-void receiveUdp();
-void setDataFromUDP(const std::string &udpData);
+std::string receiveUdp();
+
 
 #endif // EVT_TELEMETRY_H

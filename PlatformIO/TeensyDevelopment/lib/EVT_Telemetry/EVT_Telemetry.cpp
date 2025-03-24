@@ -14,30 +14,6 @@ byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 char autoBuffer[UDP_TX_PACKET_MAX_SIZE];
 static char telemetryPacketBuffer[UDP_TX_PACKET_MAX_SIZE];
 
-// Global variables for UDP data processing.
-float steering_angle = 0.0;
-float throttle = 0.0;
-bool emergency = false;
-
-// Function to parse UDP data and update telemetry variables.
-void setDataFromUDP(const std::string &udpData) {
-  std::istringstream ss(udpData);
-  std::string token;
-  std::vector<std::string> tokens;
-  
-  while (std::getline(ss, token, ',')) {
-    tokens.push_back(token);
-  }
-  
-  if (tokens.size() >= 3) {
-    steering_angle = std::atof(tokens[0].c_str());
-    throttle = std::atof(tokens[1].c_str());
-    emergency = (std::atoi(tokens[2].c_str()) != 0);
-  } else {
-    Serial.print("Insufficient data received: ");
-    Serial.println(udpData.c_str());
-  }
-}
 
 // Telemetry destination details.
 static IPAddress telemetryDestIP(192, 168, 0, 132);
@@ -78,8 +54,7 @@ void sendTelemetry(float rpm, float vescVoltage, float odrvVoltage, float avgMot
   Udp.endPacket();
 }
 
-// Function to receive UDP packets and display parsed telemetry on Serial.
-void receiveUdp() {
+std::string receiveUdp() {
   int packetSize = Udp.parsePacket();
   if (packetSize > 0) {
     int len = Udp.read(autoBuffer, sizeof(autoBuffer) - 1);
@@ -88,26 +63,10 @@ void receiveUdp() {
     }
     Serial.print("Received packet: ");
     Serial.println(autoBuffer);
-    setDataFromUDP(std::string(autoBuffer));
-    
-    // Display parsed telemetry data on Serial.
-    Serial.println("Parsed Telemetry Data:");
-    Serial.print("Steering Angle: ");
-    Serial.println(steering_angle);
-    Serial.print("Throttle: ");
-    Serial.println(throttle);
-    Serial.print("Emergency: ");
-    Serial.println(emergency ? "true" : "false");
+    return std::string(autoBuffer);
   }
+  // Return an empty string if no packet is received.
+  return std::string();
 }
 
-// Additional function to continuously display current telemetry values on Serial.
-void displayTelemetry() {
-  Serial.println("Current Telemetry Data:");
-  Serial.print("Steering Angle: ");
-  Serial.println(steering_angle);
-  Serial.print("Throttle: ");
-  Serial.println(throttle);
-  Serial.print("Emergency: ");
-  Serial.println(emergency ? "true" : "false");
-}
+
