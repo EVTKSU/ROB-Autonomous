@@ -19,6 +19,7 @@ float steering_angle = 0.0;
 float throttle = 0.0;
 bool emergency = false;
 
+// Function to parse UDP data and update telemetry variables.
 void setDataFromUDP(const std::string &udpData) {
   std::istringstream ss(udpData);
   std::string token;
@@ -38,21 +39,22 @@ void setDataFromUDP(const std::string &udpData) {
   }
 }
 
-// Telemetry destination details (local to this file).
+// Telemetry destination details.
 static IPAddress telemetryDestIP(192, 168, 0, 132);
 static const uint16_t TELEMETRY_DEST_PORT = 8888;
 
+// Setup function for initializing Ethernet and UDP.
 void setupTelemetryUDP() {
   Serial.println("Initializing Telemetry UDP...");
-  Udp.begin(8888);
   Ethernet.begin(mac, ip);
-
+  Udp.begin(8888);
+  
   if (Ethernet.hardwareStatus() == EthernetNoHardware) {
     Serial.println("No Ethernet hardware found.");
   } else {
     Serial.println("Ethernet hardware is present.");
   }
-
+  
   if (Ethernet.linkStatus() == LinkON) {
     Serial.println("Ethernet cable is connected (Link ON).");
   } else {
@@ -61,15 +63,22 @@ void setupTelemetryUDP() {
   delay(1000);
 }
 
+// Function to send telemetry data over UDP and display on Serial.
 void sendTelemetry(float rpm, float vescVoltage, float odrvVoltage, float avgMotorCurrent, float odrvCurrent, float steeringAngle) {
   snprintf(telemetryPacketBuffer, sizeof(telemetryPacketBuffer),
            "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f",
            rpm, vescVoltage, odrvVoltage, avgMotorCurrent, odrvCurrent, steeringAngle);
+  
+  // Display telemetry data on Serial.
+  Serial.print("Sending telemetry: ");
+  Serial.println(telemetryPacketBuffer);
+  
   Udp.beginPacket(telemetryDestIP, TELEMETRY_DEST_PORT);
   Udp.write(telemetryPacketBuffer);
   Udp.endPacket();
 }
 
+// Function to receive UDP packets and display parsed telemetry on Serial.
 void receiveUdp() {
   int packetSize = Udp.parsePacket();
   if (packetSize > 0) {
@@ -80,11 +89,25 @@ void receiveUdp() {
     Serial.print("Received packet: ");
     Serial.println(autoBuffer);
     setDataFromUDP(std::string(autoBuffer));
-    Serial.print("Steering angle: ");
+    
+    // Display parsed telemetry data on Serial.
+    Serial.println("Parsed Telemetry Data:");
+    Serial.print("Steering Angle: ");
     Serial.println(steering_angle);
     Serial.print("Throttle: ");
     Serial.println(throttle);
-    Serial.print("Emergency flag: ");
+    Serial.print("Emergency: ");
     Serial.println(emergency ? "true" : "false");
   }
+}
+
+// Additional function to continuously display current telemetry values on Serial.
+void displayTelemetry() {
+  Serial.println("Current Telemetry Data:");
+  Serial.print("Steering Angle: ");
+  Serial.println(steering_angle);
+  Serial.print("Throttle: ");
+  Serial.println(throttle);
+  Serial.print("Emergency: ");
+  Serial.println(emergency ? "true" : "false");
 }

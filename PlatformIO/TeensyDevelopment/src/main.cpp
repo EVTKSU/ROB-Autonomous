@@ -16,11 +16,13 @@ void setup() {
 }
 
 void loop() {
+  updateSbusData();
   // If RC data is available and channel 6 exceeds the threshold, run autonomous mode.
-  if (updateSbusData() && channels[6] > 1000) {
+  if (channels[6] > 1000) {
     updateAutonomousMode();
   } else {
     updateVescControl();
+    Serial.print("meep");
     updateOdrvControl();
   }
 }
