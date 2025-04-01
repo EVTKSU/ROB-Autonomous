@@ -7,8 +7,11 @@
 
 void setup() {
   Serial.begin(9600);
+  delay(1000); // Wait for Serial Monitor to open
+
   
   // Initialize modules.
+  Serial.println("Initializing modules...");
   setupTelemetryUDP();
   setupSbus();
   setupVesc();

@@ -30,10 +30,11 @@ void initCalibration() {
     Serial.println(String(preCalZero, 2));
     delay(3000);
     
-    Serial.println("Calibrating steering (encoder offset calibration)...");
-    odrive.setState(AXIS_STATE_ENCODER_OFFSET_CALIBRATION);
-    delay(4000);
-    odrive.clearErrors();
+    // Serial.println("Calibrating steering (encoder offset calibration)...");
+    // odrive.setState(AXIS_STATE_ENCODER_OFFSET_CALIBRATION);
+    // delay(4000);
+    // as of now we don't need these above^^
+    odrive.clearErrors(); // just for safety? 
     
     fb = odrive.getFeedback();
     Serial.print("Post-calibration steering reading: ");
@@ -92,7 +93,7 @@ void updateOdrvControl() {
     if (ch_clear > 1500 && !errorClearFlag) {
         errorClearFlag = true;
         if (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL) {
-            Serial.println("ODrive fault detected via SBUS channel 4. Recalibrating...");
+            Serial.println("ODrive fault reset trigger hit. Recalibrating..."); // serials out that it saw we hit da switch to recalibrate
             odrive.clearErrors();
             systemInitialized = false;
             initCalibration();
