@@ -30,10 +30,10 @@ void initCalibration() {
     Serial.println(String(preCalZero, 2));
     delay(3000);
     
-    // Serial.println("Calibrating steering (encoder offset calibration)...");
-    // odrive.setState(AXIS_STATE_ENCODER_OFFSET_CALIBRATION);
-    // delay(4000);
-    // as of now we don't need these above^^
+    Serial.println("Calibrating steering (encoder offset calibration)...");
+    odrive.setState(AXIS_STATE_ENCODER_OFFSET_CALIBRATION);
+    delay(4000);
+   // as of now we don't need these above^^
     odrive.clearErrors(); // just for safety? 
     
     fb = odrive.getFeedback();

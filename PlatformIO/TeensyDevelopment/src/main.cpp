@@ -25,7 +25,6 @@ void loop() {
     updateAutonomousMode();
   } else {
     updateVescControl();
-    Serial.print("meep");
     updateOdrvControl();
   }
 }
