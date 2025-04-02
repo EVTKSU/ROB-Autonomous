@@ -13,7 +13,7 @@ extern byte mac[];
 
 // Telemetry function prototypes.
 void setupTelemetryUDP();
-void sendTelemetry(float rpm, float vescVoltage, float odrvVoltage, float avgMotorCurrent, float odrvCurrent, float steeringAngle);
+void sendTelemetry(float rpm, float vescVoltage, float odrvVoltage, float avgMotorCurrent, float odrvCurrent , float steeringAngle);
 std::string receiveUdp();
 
 

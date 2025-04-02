@@ -7,7 +7,9 @@
 // Global variable for UDP data processing.
 float raw_throttle = 0.0;
 bool emergency = false;
-
+void centersteeringB4Auto() {
+   
+}
 // Function to parse UDP data and update control variables.
 // Note: The UDP steering value is ignored because we rely on ODrive's feedback.
 void setControls(const std::string &udpData) {
@@ -35,6 +37,7 @@ void runMappedControls() {
     static bool centerCaptured = false;
     static float autoCenterSteering = 0.0f;
 
+    
     if (!centerCaptured) {
         // Capture the center from ODrive's current reported steering position.
         ODriveFeedback fb = odrive.getFeedback();

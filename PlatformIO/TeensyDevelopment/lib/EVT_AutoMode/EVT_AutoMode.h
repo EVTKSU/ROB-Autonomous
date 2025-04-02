@@ -4,6 +4,7 @@
 #include <Arduino.h>
 
 // Autonomous mode function prototype.
+void CenterSteeringB4Auto();
 void updateAutonomousMode();
 void setControls(const std::string &udpData);
 void runMappedControls();
