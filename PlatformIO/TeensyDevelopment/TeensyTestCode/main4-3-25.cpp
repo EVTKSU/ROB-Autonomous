@@ -46,13 +46,12 @@ void loop() {
 
   case ERR:
 
-    // check for calibration switch (to fix odrive)
-    if (channels[4] > 1000){
+    // check for calibration switch
+    if (channels[5] > 900){
       //check auto switch
       if (channels[6] > 1000) {
         Serial.println("TURN OFF AUTO SWITCH BEFORE ATTEMPTING TO CLEAR ERRORS");
       }else{
-        Serial.println();
         Serial.println("yay! Errors cleared :D");
         SetState(RC);
       }

@@ -1,6 +1,7 @@
 #include <SPI.h>
 #include <sstream>
 #include "EVT_VescDriver.h"
+#include "EVT_StateMachine.h"
 #include "EVT_ODriver.h"
 #include "EVT_Ethernet.h"
 
@@ -85,4 +86,8 @@ void updateAutonomousMode() {
         setControls(rawCommands);
     }
     runMappedControls();
+
+    if (emergency){
+        SetErrorState("AutoMode","Emergency Flag");
+    }
 }
