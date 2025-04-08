@@ -6,11 +6,33 @@
 #include "EVT_Ethernet.h"
 
 // Global variable for UDP data processing.
+// fixed here
+float raw_steering_angle = 0.0;
 float raw_throttle = 0.0;
 bool emergency = false;
 
+// old method for referrence
+
+// void setDataFromUDP(const std::string &udpData) {
+//     std::istringstream ss(udpData);
+//     std::string token;
+//     std::vector<std::string> tokens;
+  
+//     while (std::getline(ss, token, ',')) {
+//       tokens.push_back(token);
+//     }
+  
+//     if (tokens.size() >= 3) {
+//       steering_angle = std::atof(tokens[0].c_str());
+//       throttle = std::atof(tokens[1].c_str());
+//       emergency = (std::atoi(tokens[2].c_str()) != 0);
+//     } else {
+//       Serial.print("Insufficient data received: ");
+//       Serial.println(udpData.c_str());
+//     }
+//   }
+
 // Function to parse UDP data and update control variables.
-// Note: The UDP steering value is ignored because we rely on ODrive's feedback.
 void setControls(const std::string &udpData) {
     std::istringstream ss(udpData);
     std::string token;
@@ -21,7 +43,8 @@ void setControls(const std::string &udpData) {
     }
 
     if (tokens.size() >= 3) {
-        // Skip the UDP steering value (tokens[0]) and use only throttle and emergency.
+        // fixed here
+        raw_steering_angle = std::atof(tokens[0].c_str());
         raw_throttle = std::atof(tokens[1].c_str());
         emergency = (std::atoi(tokens[2].c_str()) != 0);
     } else {
