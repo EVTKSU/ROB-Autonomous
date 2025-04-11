@@ -48,6 +48,7 @@ void loop() {
 
     // check for calibration switch (to fix odrive)
     if (channels[4] > 1000){
+      // COLIN LOOK HERE!! we need to set this to not be channel 4 since that will cause issues down the line with our encoder.
       //check auto switch
       if (channels[6] > 1000) {
         Serial.println("TURN OFF AUTO SWITCH BEFORE ATTEMPTING TO CLEAR ERRORS");

@@ -19,6 +19,7 @@ static float currentSteeringOffset = 0.0f;
 static unsigned long lastPrintTime = 0;
 
 void initCalibration() {
+    odrive.clearErrors();
     Serial.println("Init Calibration Triggered via SBUS Channel 5!");
     odrive.setState(AXIS_STATE_MOTOR_CALIBRATION);
     delay(4000);
@@ -79,17 +80,17 @@ void setupOdrv() {
 }
 
 void updateOdrvControl() {
-    static unsigned long lastLedToggle = 0;
-    if (!systemInitialized) {
-        if (millis() - lastLedToggle > 500) {
-            lastLedToggle = millis();
-            digitalWrite(STATUS_LED_PIN, !digitalRead(STATUS_LED_PIN));
-        }
-    } else {
-        digitalWrite(STATUS_LED_PIN, HIGH);
-    }
-    
-    int ch_clear = channels[4];
+    // static unsigned long lastLedToggle = 0;
+    // if (!systemInitialized) {
+    //     if (millis() - lastLedToggle > 500) {
+    //         lastLedToggle = millis();
+    //         digitalWrite(STATUS_LED_PIN, !digitalRead(STATUS_LED_PIN));
+    //     }
+    // } else {
+    //     digitalWrite(STATUS_LED_PIN, HIGH);
+    // }
+    // commented the above out as it might be blocking the loop and delaying odrive update
+    int ch_clear = channels[5];
     if (ch_clear > 1500 && !errorClearFlag) {
         errorClearFlag = true;
         if (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL) {
