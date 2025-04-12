@@ -1,11 +1,12 @@
 #include "EVT_StateMachine.h"
-
+#include "EVT_VescDriver.h"
 // Define the global state variable.
 STATE CurrentState = NONE;
 
 STATE GetState() {
     return CurrentState;
 }
+
 
 void SetState(STATE newState) {
     CurrentState = newState;
@@ -47,6 +48,7 @@ const char* StateToString(STATE s) {
         case INIT:   return "INIT";
         case CALIB:  return "CALIB";
         case RC:     return "RC";
+        case IDLE:   return "IDLE";
         case AUTO:   return "AUTO";
         case ERR:    return "ERR";
         default:     return "UNKNOWN";

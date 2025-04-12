@@ -16,6 +16,8 @@ extern ODriveUART odrive;
 
 // ODrive function prototypes.
 void setupOdrv();
+void odrvErrorCheck() ;
 void updateOdrvControl();
+void printOdriveError();
 
 #endif // EVT_ODRIVER_H

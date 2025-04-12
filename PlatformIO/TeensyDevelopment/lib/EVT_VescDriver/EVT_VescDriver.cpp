@@ -1,6 +1,6 @@
 #include "EVT_VescDriver.h"
 #include "EVT_RC.h"
-
+#include "EVT_StateMachine.h"
 VescUart vesc1;
 VescUart vesc2;
 String vescDebug = "";
@@ -12,8 +12,37 @@ void setupVesc() {
     Serial5.begin(115200);
     vesc2.setSerialPort(&Serial5);
 }
-
+void printVescError() {
+    // Update the VESC values first
+    vesc1.getVescValues();
+    vesc2.getVescValues();
+    
+    // Print error information for VESC1.
+    Serial.print("VESC1 error: ");
+    Serial.println(vesc1.data.error);
+    
+    // Print error information for VESC2.
+    Serial.print("VESC2 error: ");
+    Serial.println(vesc2.data.error);
+}
+void vescErrorCheck() {
+    vesc1.getVescValues();
+    vesc2.getVescValues();
+    
+    if (vesc1.data.error > 0) {
+        SetErrorState(ERR_VESC, String(vesc1.data.error).c_str());
+    }
+    if (vesc2.data.error > 0) {
+        SetErrorState(ERR_VESC, String(vesc2.data.error).c_str());
+    }
+}
 void updateVescControl() {
+
+    vesc1.getVescValues();
+    if (vesc1.data.error > 0) {
+        SetErrorState(ERR_VESC, String(vesc1.data.error).c_str());
+    }
+
     int ch_vesc = channels[1];
     const int neutral = 990;
     const int deadband = 20;
@@ -38,8 +67,4 @@ void updateVescControl() {
     vesc1.setRPM(rpmCommand);
     vesc2.setRPM(rpmCommand);
     
-    if (vesc1.getVescValues()) {
-        vescDebug = "RPM: " + String(vesc1.data.rpm) + "\r\n" +
-                    "Input Voltage: " + String(vesc1.data.inpVoltage);
-    }
 }

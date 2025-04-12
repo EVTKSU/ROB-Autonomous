@@ -71,11 +71,11 @@ void runMappedControls() {
     if (!emergency) {
         // Map throttle percentage (0-100) to VESC RPM command (0-7500 RPM).
         float rpmCommand = (raw_throttle / 100.0f) * 7500.0f;
+        float MappedSteering = (raw_throttle); // raw throttle values should be from -2.4 to 2.4, the amount of turns in the steering gearbox.
         vesc1.setRPM(rpmCommand);
         vesc2.setRPM(rpmCommand);
 
-        // Keep steering at the captured center.
-        odrive.setPosition(autoCenterSteering, 27.0f);
+        odrive.setPosition(MappedSteering, 15.0f); // setting the steering angle , with a velocity of 15 fasts.
     } else {
         // In an emergency, stop throttle and hold the steering at the captured center.
         vesc1.setRPM(0);
@@ -87,23 +87,7 @@ void runMappedControls() {
 void updateAutonomousMode() {
     // Set autonomous mode debug message.
     odrvDebug = "Autonomous mode active.";
-
-    // Retrieve current ODrive feedback.
-    ODriveFeedback fb = odrive.getFeedback();
-    float steeringAngle = fb.pos;
-
-    // Get ODrive parameters.
-    float odrvCurrent = odrive.getParameterAsFloat("ibus");
-    float odrvVoltage = odrive.getParameterAsFloat("vbus_voltage");
-
-    // Update VESC telemetry.
-    vesc1.getVescValues();
-    float rpm = vesc1.data.rpm;
-    float vescVoltage = vesc1.data.inpVoltage;
-    float vescCurrent = vesc1.data.avgInputCurrent + vesc2.data.avgInputCurrent;
-
-    // Send telemetry packet and check for incoming UDP commands.
-    sendTelemetry(rpm, vescVoltage, odrvVoltage, vescCurrent, odrvCurrent, steeringAngle);
+    sendTelemetry();
     std::string rawCommands = receiveUdp();
     if (!rawCommands.empty()) {
         setControls(rawCommands);

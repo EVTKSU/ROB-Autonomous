@@ -20,9 +20,13 @@ void setup() {
   setupOdrv();
   SetState(RC);
   delay(200);
+  updateSbusData();
+ 
 }
 
 void loop() {
+
+    
   updateSbusData();
 
   switch (GetState())
@@ -46,7 +50,7 @@ void loop() {
 
   case ERR:
 
-    // check for calibration switch (to fix odrive)
+    // check for reset
     if (channels[4] > 1000){
       // COLIN LOOK HERE!! we need to set this to not be channel 4 since that will cause issues down the line with our encoder.
       //check auto switch
@@ -55,11 +59,22 @@ void loop() {
       }else{
         Serial.println();
         Serial.println("yay! Errors cleared :D");
-        SetState(RC);
+        SetState(IDLE);
+        odrive.setState(AXIS_STATE_UNDEFINED);
       }
     }
   break;
   
+  case IDLE:
+    // Check if the system is idle and not in error state
+    if (channels[8] > 400) {
+      SetState(RC);
+    } else {
+      Serial.println("System is idle. Waiting for commands...");
+      delay(250); // Add a delay to avoid flooding the serial output
+    }
+    break;
+
   default:
       Serial.println("AUTO and RC disabled due to state:");
       PrintState();
@@ -68,3 +83,4 @@ void loop() {
 
   }
 }
+// i put this here in case i need to test something in the future and replace the main file during testing.

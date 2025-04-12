@@ -7,7 +7,9 @@
 
 // VESC function prototypes.
 void setupVesc();
+void vescErrorCheck();
 void updateVescControl();
+void printVescError();
 
 extern String vescDebug;
 
