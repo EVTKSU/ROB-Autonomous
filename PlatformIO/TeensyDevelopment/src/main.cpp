@@ -3,8 +3,9 @@
 #include "EVT_Ethernet.h"
 #include "EVT_RC.h"
 #include "EVT_VescDriver.h"
-#include "EVT_ODriver.h"
 #include "EVT_AutoMode.h"
+#include "EVT_ODriver.h"
+
 
 void setup() {
   Serial.begin(9600);
@@ -21,7 +22,9 @@ void setup() {
   SetState(RC);
   delay(200);
   updateSbusData();
- 
+  digitalWrite(3, HIGH); // Turn on relay 1 (odrive)
+  digitalWrite(4, HIGH); // Turn on relay 2 (vesc)
+  digitalWrite(5, HIGH); // Turn on relay 3 (contactor)
 }
 
 void loop() {
@@ -49,11 +52,17 @@ void loop() {
     break;
 
   case ERR:
-
+      digitalWrite(3, LOW); // Turn off relay 1 (odrive)
+      digitalWrite(4, LOW); // Turn off relay 2 (vesc)
+      digitalWrite(5, LOW); // Turn off relay 3 (contactor)
     // check for reset
     if (channels[4] > 1000){
       // COLIN LOOK HERE!! we need to set this to not be channel 4 since that will cause issues down the line with our encoder.
       //check auto switch
+      digitalWrite(3, HIGH); // Turn off relay 1 (odrive)
+      digitalWrite(4, HIGH); // Turn off relay 2 (vesc)
+      digitalWrite(5, HIGH); // Turn off relay 3 (contactor)
+      Serial.println("Attempting to clear errors...");
       if (channels[6] > 1000) {
         Serial.println("TURN OFF AUTO SWITCH BEFORE ATTEMPTING TO CLEAR ERRORS");
       }else{

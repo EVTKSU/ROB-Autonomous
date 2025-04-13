@@ -85,32 +85,21 @@ void setupOdrv() {
     }
     Serial.println("ODrive setup complete. System idle until calibration.");
 }
+
+
+
+
+    
 String odriveErrorToString(uint32_t err) {
     if (err == ODRIVE_ERROR_NONE) return "None";
     String s = "";
-    if (err & ODRIVE_ERROR_INITIALIZING)                s += "Initializing, ";
-    if (err & ODRIVE_ERROR_SYSTEM_LEVEL)                s += "System Level, ";
-    if (err & ODRIVE_ERROR_TIMING_ERROR)                s += "Timing Error, ";
-    if (err & ODRIVE_ERROR_MISSING_ESTIMATE)            s += "Missing Estimate, ";
-    if (err & ODRIVE_ERROR_BAD_CONFIG)                  s += "Bad Config, ";
-    if (err & ODRIVE_ERROR_DRV_FAULT)                   s += "DRV Fault, ";
-    if (err & ODRIVE_ERROR_MISSING_INPUT)               s += "Missing Input, ";
-    if (err & ODRIVE_ERROR_DC_BUS_OVER_VOLTAGE)         s += "DC Bus Over Voltage, ";
-    if (err & ODRIVE_ERROR_DC_BUS_UNDER_VOLTAGE)        s += "DC Bus Under Voltage, ";
-    if (err & ODRIVE_ERROR_DC_BUS_OVER_CURRENT)         s += "DC Bus Over Current, ";
-    if (err & ODRIVE_ERROR_DC_BUS_OVER_REGEN_CURRENT)   s += "DC Bus Over Regen Current, ";
-    if (err & ODRIVE_ERROR_CURRENT_LIMIT_VIOLATION)     s += "Current Limit Violation, ";
-    if (err & ODRIVE_ERROR_MOTOR_OVER_TEMP)             s += "Motor Over Temp, ";
-    if (err & ODRIVE_ERROR_INVERTER_OVER_TEMP)          s += "Inverter Over Temp, ";
-    if (err & ODRIVE_ERROR_VELOCITY_LIMIT_VIOLATION)    s += "Velocity Limit Violation, ";
-    if (err & ODRIVE_ERROR_POSITION_LIMIT_VIOLATION)    s += "Position Limit Violation, ";
-    if (err & ODRIVE_ERROR_WATCHDOG_TIMER_EXPIRED)      s += "Watchdog Timer Expired, ";
-    if (err & ODRIVE_ERROR_ESTOP_REQUESTED)             s += "Estop Requested, ";
-    if (err & ODRIVE_ERROR_SPINOUT_DETECTED)            s += "Spinout Detected, ";
-    if (err & ODRIVE_ERROR_BRAKE_RESISTOR_DISARMED)     s += "Brake Resistor Disarmed, ";
-    if (err & ODRIVE_ERROR_THERMISTOR_DISCONNECTED)     s += "Thermistor Disconnected, ";
-    if (err & ODRIVE_ERROR_CALIBRATION_ERROR)           s += "Calibration Error, ";
-    if (s.endsWith(", ")) s = s.substring(0, s.length()-2);
+    for (const auto& [errorCode, errorString] : errorMap) {
+        if (err & errorCode) {
+            if (s != "") s += ", ";
+            s += errorString;
+        }
+    }
+
     return s;
 }
 

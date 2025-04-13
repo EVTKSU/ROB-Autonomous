@@ -11,7 +11,7 @@
 
 // Global object definitions.
 EthernetUDP Udp;
-IPAddress ip(192, 168, 0, 177);
+IPAddress ip(192, 168, 0, 177); // teensy ip defined here
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 
 // Internal buffers for UDP packets.
@@ -20,7 +20,7 @@ static char telemetryPacketBuffer[UDP_TX_PACKET_MAX_SIZE];
 
 
 // Telemetry destination details.
-static IPAddress telemetryDestIP(192, 168, 0, 132);
+static IPAddress telemetryDestIP(192, 168, 0, 132); // pi ip defined here
 static const uint16_t TELEMETRY_DEST_PORT = 8888;
 
 // Setup function for initializing Ethernet and UDP.

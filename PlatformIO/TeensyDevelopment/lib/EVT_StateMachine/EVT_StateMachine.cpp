@@ -43,14 +43,9 @@ void PrintState(){
 }
 
 const char* StateToString(STATE s) {
-    switch(s) {
-        case NONE:   return "NONE";
-        case INIT:   return "INIT";
-        case CALIB:  return "CALIB";
-        case RC:     return "RC";
-        case IDLE:   return "IDLE";
-        case AUTO:   return "AUTO";
-        case ERR:    return "ERR";
-        default:     return "UNKNOWN";
+    if (s >= 0 && s < STATE_COUNT) {
+        return state_names[s];
+    } else {
+        return "INVALID_STATE"; // Handle out-of-range values
     }
 }
