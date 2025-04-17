@@ -30,7 +30,7 @@ void loop() {
 
     
   updateSbusData();
-  
+
   switch (GetState())
   {
   case RC:
@@ -39,7 +39,6 @@ void loop() {
     } else {
       updateVescControl();
       updateOdrvControl();
-      
     }
     break;
 

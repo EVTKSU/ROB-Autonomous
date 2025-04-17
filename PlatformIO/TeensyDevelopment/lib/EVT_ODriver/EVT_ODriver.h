@@ -20,9 +20,10 @@ void setupOdrv();
 void odrvErrorCheck() ;
 void updateOdrvControl();
 void printOdriveError();
+void initCalibration();
 
 // Map of error codes to their corresponding strings
-static const std::map<uint32_t, String> errorMap = {
+static const std::map<uint32_t, String> odrvErrorMap = {
     {ODRIVE_ERROR_INITIALIZING, "Initializing"},
     {ODRIVE_ERROR_SYSTEM_LEVEL, "System Level"},
     {ODRIVE_ERROR_TIMING_ERROR, "Timing Error"},
