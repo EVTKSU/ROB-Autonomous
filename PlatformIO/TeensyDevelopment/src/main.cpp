@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "EVT_StateMachine.h"
 #include "EVT_Ethernet.h"
+#include "EVT_ErrorHandler.h"
 #include "EVT_RC.h"
 #include "EVT_VescDriver.h"
 #include "EVT_AutoMode.h"
@@ -28,7 +29,8 @@ void setup() {
 
 void loop() {
 
-    
+
+  CheckForErrors();  
   updateSbusData();
   
   switch (GetState())

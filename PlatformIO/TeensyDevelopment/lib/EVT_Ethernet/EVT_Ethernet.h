@@ -14,6 +14,7 @@ extern byte mac[];
 // Telemetry function prototypes.
 void setupTelemetryUDP();
 void sendTelemetry();
+void checkConnection();
 std::string receiveUdp();
 
 

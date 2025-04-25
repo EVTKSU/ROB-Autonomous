@@ -74,6 +74,14 @@ void sendTelemetry() {
   Udp.endPacket();
 }
 
+void checkConnection() {
+  // Check if the Ethernet cable is connected.
+  if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+    Serial.println("No Ethernet hardware found.");
+    SetErrorState(ERR_ETHERNET, "Ethernet connection severed");
+  
+  }
+}
 std::string receiveUdp() {
   int packetSize = Udp.parsePacket();
   if (packetSize > 0) {
