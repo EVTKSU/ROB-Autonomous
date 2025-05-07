@@ -11,11 +11,16 @@ RUN apt-get update && apt-get install -y \
     gnupg2 \
     lsb-release \
     locales \
+    dos2unix \
     software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy your ROS 2 installer script into the container
 COPY your_ros2_installer.sh /tmp/
+
+# Convert the script to Unix line endings
+# (SOME BULLSHIT)
+RUN dos2unix /tmp/your_ros2_installer.sh
 
 # Make the installer script executable
 RUN chmod +x /tmp/your_ros2_installer.sh
