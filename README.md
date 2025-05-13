@@ -1,61 +1,152 @@
-# ROB and MINI-ROB autonomous go-kart development repo
-### Kennesaw State University - Electric Vehicle Team
+# EVT‑Teensy Firmware
 
-This repository contains the source code for the ROB and MINI-ROB go-karts for competition in the Autonomous Karting Series. 
+**Table of Contents**
 
-<br>
+1. [PlatformIO Setup (IMPORTANT)](#platformio-setup-important)  
+2. [Build & Flash Workflow](#build-flash-workflow)  
+3. [Module Overview](#module-overview)  
+   * [State Machine](#state-machine-evt_statemachine)  
+   * [Ethernet / Telemetry](#ethernet--telemetry-evt_ethernet)  
+   * [RC Interface](#rc-interface-evt_rc)  
+   * [VESC Driver](#vesc-driver-evt_vescdriver)  
+   * [Odrive Driver](#odrive-driver-evt_odriver)  
+   * [Autonomous Mode](#autonomous-mode-evt_automode)  
+4. [Runtime Flow](#runtime-flow)  
+5. [Extending the Code Base](#extending-the-code-base)  
+6. [Troubleshooting / FAQ](#troubleshooting-faq)  
 
-## Table of Contents
- - [Systems Diagram](#computing-systems-and-task-distribution-diagram)
- - [ROS2 Docker Usage](#ros2-docker-usage)
- - [PlatformIO Usage](#platformio-usage)
+---
 
-<br>
+## PlatformIO Setup (IMPORTANT)
 
-## Computing Systems and Task Distribution Diagram
-![software_diagram](README.assets/software_diagram.png)
+* **Running / flashing code**
 
-<br>
+  1. Open the **TeensyDevelopment** folder in **VS Code** *by itself.*  
+  2. Wait for PlatformIO to finish indexing.  
+  3. Edit `src/main.cpp`.  
+  4. Click the ✔️ (Build) to compile, ➡️ (Upload) to flash, 🔌 (Serial) for monitor.
 
-## ROS2 Docker Usage
-*The docker container contains all of the neccesarry ROS2 linux-specific dependencies in an Ubuntu environment*
+The **TeensyDevelopment** folder is a stand‑alone PlatformIO project.
 
-### Build the Docker Image:
-1. run docker engine in docker desktop
-2. Open a terminal, cd to the directory containing your Dockerfile and run these 2 commands:
+* **Only one file may live in `src/` at a time** – that file must be `main.cpp`.  
+* All reusable code goes in `lib/` as named library folders (e.g. `lib/EVT_RC/…`).  
 
-### Build the Docker Container
-`docker build -t ros2_image .`
+* **Storing prototypes / experiments**
 
-### Run the Docker Container
-`docker run -it ros2_image`
+  * Drop extra sketches in `TeensyTestCode/`.  
+  * Comment your name at the top, then copy‑paste the file into `src/main.cpp` when you actually want to run it.
 
-This setup creates a Docker image based on Ubuntu, installs any necessary dependencies, and runs your ROS 2 installer script inside the container.
+---
 
-**type `exit` to leave the container in your terminal**
+## Build & Flash Workflow
 
-<br>
+1. **Connect** the Teensy and open VS Code.  
+2. **Configure** any IP/MAC changes in `EVT_Ethernet.cpp` (default `192.168.0.177`).  
+3. **Build** (✔️) – PlatformIO compiles every library under `lib/`.  
+4. **Upload** (➡️) – Flashes the Teensy; the board will reboot.  
+5. **Monitor** (🔌) – Opens serial @ 9600 baud; watch debug prints.  
 
-## Platformio Usage
-*PlatformIO is used for c++ teensy development in VSCode*
+> **Note:** Ethernet MAX PACKET SIZE in the Teensy core must be raised to 64 bytes (default is 36).  
+> Edit `<Arduino‑core>/libraries/NativeEthernet/src/utility/util.h` if you have compile‑time truncation issues.
 
-### Only one file may be in src at one time
-  - main.cpp is to be used as the running code
+---
 
-### /lib stores libraries for use in /src
-  - Add neccesarry libraries as folders in lib
+## Module Overview
 
-### How to run code
-  - Open the TeensyDevelopment folder in VSCode **(BY ITSELF)**
-  - Wait for platformio to load and configure
-  - Open src\main.cpp
-  - Check mark icon compiles code
-  - -> arrow icon uploads code
-  - Plug icon displays serial monitor
+### State Machine (`EVT_StateMachine`)
 
-### How to store multiple files
-  - Store files to test in TeensyTestCode
-  - Comment the name of your file at the top of your cpp/ino file
-  - Paste code from file to run in src\main.cpp
+| Enum State | Purpose |
+|------------|---------|
+| `NONE`     | Pre‑boot / undefined |
+| `INIT`     | Hardware bring‑up (Ethernet, drivers) |
+| `CALIB`    | ODrive calibration sequence |
+| `RC`       | Manual remote‑control mode |
+| `AUTO`     | Autonomous mode running UDP commands |
+| `ERR`      | Fatal error – motors stopped, requires user reset |
 
-> Side note: any future PlatformIO projects go under the PlatformIO directory
+Modules call `SetState()` or `SetErrorState()` to transition. `StateToString()` converts the enum to a printable string.
+
+---
+
+### Ethernet  /  Telemetry (`EVT_Ethernet`)
+
+* Initializes **NativeEthernet** and a global `EthernetUDP Udp` object.  
+* `sendTelemetry()` — formats six floats and broadcasts to `192.168.0.132:8888`.  
+* `receiveUdp()` — non‑blocking; returns a `std::string` packet or empty.
+
+---
+
+### RC Interface (`EVT_RC`)
+
+* Uses **SBUS** on `Serial2` @ 100 kBd.  
+* Exposes `uint16_t channels[10]` array.  
+* `updateSbusData()` refreshes the channel buffer – called every loop.
+
+---
+
+### VESC Driver (`EVT_VescDriver`)
+
+* Two **VescUart** objects (`Serial1`, `Serial5`).  
+* Maps `channels[1]` (throttle) to ±7500 RPM with neutral dead‑band.  
+* Updates global `vescDebug` string with live RPM & voltage.
+
+---
+
+### Odrive Driver (`EVT_ODriver`)
+
+* UART on **Serial6**.  
+* Handles motor & encoder offset calibration (triggered via `channels[5]`).  
+* Supports error clearing / re‑cal via `channels[4]`.  
+* Controls steering position via `channels[3]`.  
+* Publishes `odrvDebug` for telemetry prints.
+
+---
+
+### Autonomous Mode (`EVT_AutoMode`)
+
+* Polls UDP for commands: `steering,throttle,emergency`.  
+* On entry, captures current ODrive pos as center.  
+* Maps throttle% to RPM and holds steering center while `emergency==0`.  
+* If `emergency == true` ➜ calls `SetErrorState()`.
+
+---
+
+## Runtime Flow
+
+1. **setup()**  
+   * `SetState(INIT)` ⟶ Ethernet / SBUS / drivers init.  
+   * `SetState(RC)` – ready for manual driving.
+
+2. **loop()**  
+   * Always refresh SBUS.  
+   * `switch(GetState())`  
+     * **RC** – if `channels[6] > 1000` ➜ `AUTO`, else run VESC+ODrive updates.  
+     * **AUTO** – if `channels[6] < 1000` ➜ back to `RC`; otherwise run UDP autonomous routine.  
+     * **ERR** – wait for operator reset (`channels[4]` high w/ auto switch low).  
+
+3. **Telemetry** – every autonomous loop sends telemetry; RC loops can add later.
+
+---
+
+## Extending the Code Base
+
+* **New module?** Create `lib/EVT_MyModule/` with `EVT_MyModule.h/.cpp`.  
+* **Error handling** – call `SetErrorState("Module","Reason")`.  
+* **Documentation** – each library needs a `README.md` explaining its API.  
+* **Branches** – develop on a new Git branch; open PRs for review.
+
+---
+
+## Troubleshooting / FAQ
+
+| Problem | Fix |
+|---------|-----|
+| **“multiple definition of operator new”** | Add `-Wl,--allow-multiple-definition` to `build_flags` in `platformio.ini`. |
+| **Ethernet packet cut at 36 B** | Increase `UDP_TX_PACKET_MAX_SIZE` to 64 in Teensy **NativeEthernet** core. |
+| **State machine keeps breaking** | Follow enum + `switch` template in `main.cpp`; keep module code non‑blocking. |
+| **No SBUS data** | Confirm `Serial2` wiring and 100 kBd 8E2 settings. |
+| **ODrive never reaches CLOSED_LOOP** | Check power, hall/encoder cables, and run calibration trigger (`channels[5]`). |
+
+---
+
+> *“Making a proper state machine setup nukes the code every time – until this one.”*
