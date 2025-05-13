@@ -1,4 +1,4 @@
-# EVT‑Teensy Firmware
+# ROB‑Embedded Teensy Firmware
 
 **Table of Contents**
 
