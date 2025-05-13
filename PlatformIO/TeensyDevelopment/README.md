@@ -2,34 +2,34 @@
 
 **Table of Contents**
 
-1. [PlatformIO Setup (IMPORTANT)](#platformio-setup-important)  
-2. [Build & Flash Workflow](#build-flash-workflow)  
+1. [PlatformIO Setup IMPORTANT](#platformio-setup-important)  
+2. [Build and Flash Workflow](#build-and-flash-workflow)  
 3. [Module Overview](#module-overview)  
-   * [State Machine](#state-machine-evt_statemachine)  
-   * [Ethernet / Telemetry](#ethernet--telemetry-evt_ethernet)  
-   * [RC Interface](#rc-interface-evt_rc)  
-   * [VESC Driver](#vesc-driver-evt_vescdriver)  
-   * [Odrive Driver](#odrive-driver-evt_odriver)  
-   * [Autonomous Mode](#autonomous-mode-evt_automode)  
+   * [State Machine EVT_StateMachine](#state-machine-evt_statemachine)  
+   * [Ethernet and Telemetry EVT_Ethernet](#ethernet-and-telemetry-evt_ethernet)  
+   * [RC Interface EVT_RC](#rc-interface-evt_rc)  
+   * [VESC Driver EVT_VescDriver](#vesc-driver-evt_vescdriver)  
+   * [Odrive Driver EVT_ODriver](#odrive-driver-evt_odriver)  
+   * [Autonomous Mode EVT_AutoMode](#autonomous-mode-evt_automode)  
 4. [Runtime Flow](#runtime-flow)  
 5. [Extending the Code Base](#extending-the-code-base)  
-6. [Troubleshooting / FAQ](#troubleshooting-faq)  
+6. [Troubleshooting FAQ](#troubleshooting-faq)  
 
 ---
 
-## PlatformIO Setup (IMPORTANT)
+## PlatformIO Setup IMPORTANT
 
 * **Running / flashing code**
 
   1. Open the **TeensyDevelopment** folder in **VS Code** *by itself.*  
   2. Wait for PlatformIO to finish indexing.  
   3. Edit `src/main.cpp`.  
-  4. Click the ✔️ (Build) to compile, ➡️ (Upload) to flash, 🔌 (Serial) for monitor.
+  4. Click ✔️ (Build) to compile, ➡️ (Upload) to flash, 🔌 (Serial) for monitor.
 
 The **TeensyDevelopment** folder is a stand‑alone PlatformIO project.
 
 * **Only one file may live in `src/` at a time** – that file must be `main.cpp`.  
-* All reusable code goes in `lib/` as named library folders (e.g. `lib/EVT_RC/…`).  
+* All reusable code lives in `lib/` as named library folders (e.g. `lib/EVT_RC/…`).  
 
 * **Storing prototypes / experiments**
 
@@ -38,22 +38,22 @@ The **TeensyDevelopment** folder is a stand‑alone PlatformIO project.
 
 ---
 
-## Build & Flash Workflow
+## Build and Flash Workflow
 
 1. **Connect** the Teensy and open VS Code.  
 2. **Configure** any IP/MAC changes in `EVT_Ethernet.cpp` (default `192.168.0.177`).  
 3. **Build** (✔️) – PlatformIO compiles every library under `lib/`.  
 4. **Upload** (➡️) – Flashes the Teensy; the board will reboot.  
-5. **Monitor** (🔌) – Opens serial @ 9600 baud; watch debug prints.  
+5. **Monitor** (🔌) – Opens serial @ 9600 baud; watch debug prints.  
 
-> **Note:** Ethernet MAX PACKET SIZE in the Teensy core must be raised to 64 bytes (default is 36).  
+> **Note:** Ethernet MAX PACKET SIZE in the Teensy core must be raised to 64 bytes (default is 36).  
 > Edit `<Arduino‑core>/libraries/NativeEthernet/src/utility/util.h` if you have compile‑time truncation issues.
 
 ---
 
-## Module Overview
+## Module Overview
 
-### State Machine (`EVT_StateMachine`)
+### State Machine EVT_StateMachine
 
 | Enum State | Purpose |
 |------------|---------|
@@ -68,7 +68,7 @@ Modules call `SetState()` or `SetErrorState()` to transition. `StateToString()` 
 
 ---
 
-### Ethernet  /  Telemetry (`EVT_Ethernet`)
+### Ethernet and Telemetry EVT_Ethernet
 
 * Initializes **NativeEthernet** and a global `EthernetUDP Udp` object.  
 * `sendTelemetry()` — formats six floats and broadcasts to `192.168.0.132:8888`.  
@@ -76,7 +76,7 @@ Modules call `SetState()` or `SetErrorState()` to transition. `StateToString()` 
 
 ---
 
-### RC Interface (`EVT_RC`)
+### RC Interface EVT_RC
 
 * Uses **SBUS** on `Serial2` @ 100 kBd.  
 * Exposes `uint16_t channels[10]` array.  
@@ -84,7 +84,7 @@ Modules call `SetState()` or `SetErrorState()` to transition. `StateToString()` 
 
 ---
 
-### VESC Driver (`EVT_VescDriver`)
+### VESC Driver EVT_VescDriver
 
 * Two **VescUart** objects (`Serial1`, `Serial5`).  
 * Maps `channels[1]` (throttle) to ±7500 RPM with neutral dead‑band.  
@@ -92,7 +92,7 @@ Modules call `SetState()` or `SetErrorState()` to transition. `StateToString()` 
 
 ---
 
-### Odrive Driver (`EVT_ODriver`)
+### Odrive Driver EVT_ODriver
 
 * UART on **Serial6**.  
 * Handles motor & encoder offset calibration (triggered via `channels[5]`).  
@@ -102,42 +102,42 @@ Modules call `SetState()` or `SetErrorState()` to transition. `StateToString()` 
 
 ---
 
-### Autonomous Mode (`EVT_AutoMode`)
+### Autonomous Mode EVT_AutoMode
 
 * Polls UDP for commands: `steering,throttle,emergency`.  
 * On entry, captures current ODrive pos as center.  
-* Maps throttle% to RPM and holds steering center while `emergency==0`.  
+* Maps throttle % to RPM and holds steering center while `emergency==0`.  
 * If `emergency == true` ➜ calls `SetErrorState()`.
 
 ---
 
-## Runtime Flow
+## Runtime Flow
 
 1. **setup()**  
-   * `SetState(INIT)` ⟶ Ethernet / SBUS / drivers init.  
+   * `SetState(INIT)` ⟶ Ethernet / SBUS / driver initialization.  
    * `SetState(RC)` – ready for manual driving.
 
 2. **loop()**  
    * Always refresh SBUS.  
    * `switch(GetState())`  
-     * **RC** – if `channels[6] > 1000` ➜ `AUTO`, else run VESC+ODrive updates.  
+     * **RC** – if `channels[6] > 1000` ➜ `AUTO`, else run VESC & ODrive updates.  
      * **AUTO** – if `channels[6] < 1000` ➜ back to `RC`; otherwise run UDP autonomous routine.  
-     * **ERR** – wait for operator reset (`channels[4]` high w/ auto switch low).  
+     * **ERR** – wait for operator reset (`channels[4]` high with auto switch low).  
 
-3. **Telemetry** – every autonomous loop sends telemetry; RC loops can add later.
+3. **Telemetry** – autonomous loop always sends telemetry; RC loop can be extended later.
 
 ---
 
-## Extending the Code Base
+## Extending the Code Base
 
-* **New module?** Create `lib/EVT_MyModule/` with `EVT_MyModule.h/.cpp`.  
+* **New module?** Create `lib/EVT_MyModule/` with `EVT_MyModule.h` / `EVT_MyModule.cpp`.  
 * **Error handling** – call `SetErrorState("Module","Reason")`.  
 * **Documentation** – each library needs a `README.md` explaining its API.  
 * **Branches** – develop on a new Git branch; open PRs for review.
 
 ---
 
-## Troubleshooting / FAQ
+## Troubleshooting FAQ
 
 | Problem | Fix |
 |---------|-----|
