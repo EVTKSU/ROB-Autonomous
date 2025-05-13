@@ -4,10 +4,14 @@
 #include <sstream>
 #include <vector>
 #include <cstdlib>
+#include "EVT_VescDriver.h"
+#include "EVT_StateMachine.h"
+#include "EVT_ODriver.h"
+#include "EVT_Ethernet.h"
 
 // Global object definitions.
 EthernetUDP Udp;
-IPAddress ip(192, 168, 0, 177);
+IPAddress ip(192, 168, 0, 177); // teensy ip defined here
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 
 // Internal buffers for UDP packets.
@@ -16,7 +20,7 @@ static char telemetryPacketBuffer[UDP_TX_PACKET_MAX_SIZE];
 
 
 // Telemetry destination details.
-static IPAddress telemetryDestIP(192, 168, 0, 132);
+static IPAddress telemetryDestIP(192, 168, 0, 132); // pi ip defined here
 static const uint16_t TELEMETRY_DEST_PORT = 8888;
 
 // Setup function for initializing Ethernet and UDP.
@@ -40,20 +44,44 @@ void setupTelemetryUDP() {
 }
 
 // Function to send telemetry data over UDP and display on Serial.
-void sendTelemetry(float rpm, float vescVoltage, float odrvVoltage, float avgMotorCurrent, float odrvCurrent, float steeringAngle) {
+void sendTelemetry() {
+  // Retrieve current ODrive telemetry values.
+  // The velocity is obtained here but not used in the current telemetry packet.
+  float velocity = odrive.getVelocity();
+  
+  // Get current ODrive feedback.
+  ODriveFeedback fb = odrive.getFeedback();
+  float steeringAngle = fb.pos;
+  
+  // Get ODrive parameters.
+  float odrvCurrent = odrive.getParameterAsFloat("ibus");
+  float odrvVoltage = odrive.getParameterAsFloat("vbus_voltage");
+  
+  // Update VESC telemetry.
+  vesc1.getVescValues();
+  float rpm = vesc1.data.rpm;  // VESC2 will be identical so it doesn't matter.
+  float vescVoltage = vesc1.data.inpVoltage;  // VESCs are in parallel so voltage is the same.
+  float avgMotorCurrent = vesc1.data.avgInputCurrent + vesc2.data.avgInputCurrent;
+    
+  // Format telemetry packet.
   snprintf(telemetryPacketBuffer, sizeof(telemetryPacketBuffer),
-           "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f",
-           rpm, vescVoltage, odrvVoltage, avgMotorCurrent, odrvCurrent, steeringAngle);
+           "%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, %.2f",
+           StateToString(CurrentState), rpm, vescVoltage, odrvVoltage, avgMotorCurrent, odrvCurrent, steeringAngle, velocity);
   
-  // Display telemetry data on Serial.
- // Serial.print("Sending telemetry: ");
-  //Serial.println(telemetryPacketBuffer);
-  
+  // Send telemetry packet over UDP.
   Udp.beginPacket(telemetryDestIP, TELEMETRY_DEST_PORT);
   Udp.write(telemetryPacketBuffer);
   Udp.endPacket();
 }
 
+void checkConnection() {
+  // Check if the Ethernet cable is connected.
+  if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+    Serial.println("No Ethernet hardware found.");
+    SetErrorState(ERR_ETHERNET, "Ethernet connection severed");
+  
+  }
+}
 std::string receiveUdp() {
   int packetSize = Udp.parsePacket();
   if (packetSize > 0) {
