@@ -2,8 +2,8 @@
 
 **Table of Contents**
 
-1. [PlatformIO Setup (IMPORTANT)](#platformio-setup-(important))   
-2. [Build & Flash Workflow](#build-&-flash-workflow)  
+1. [PlatformIO Setup (IMPORTANT)](#platformio-setup-important)  
+2. [Build & Flash Workflow](#build-flash-workflow)  
 3. [Module Overview](#module-overview)  
    * [State Machine](#state-machine-evt_statemachine)  
    * [Ethernet / Telemetry](#ethernet--telemetry-evt_ethernet)  
@@ -13,7 +13,7 @@
    * [Autonomous Mode](#autonomous-mode-evt_automode)  
 4. [Runtime Flow](#runtime-flow)  
 5. [Extending the Code Base](#extending-the-code-base)  
-6. [Troubleshooting / FAQ](#troubleshooting--faq)  
+6. [Troubleshooting / FAQ](#troubleshooting-faq)  
 
 ---
 
@@ -35,7 +35,6 @@ The **TeensyDevelopment** folder is a stand‑alone PlatformIO project.
 
   * Drop extra sketches in `TeensyTestCode/`.  
   * Comment your name at the top, then copy‑paste the file into `src/main.cpp` when you actually want to run it.
-
 
 ---
 
@@ -107,8 +106,8 @@ Modules call `SetState()` or `SetErrorState()` to transition. `StateToString()` 
 
 * Polls UDP for commands: `steering,throttle,emergency`.  
 * On entry, captures current ODrive pos as center.  
-* Maps throttle% to RPM and holds steering center while emergency flag is 0.  
-* If `emergency == true` ➜ calls `SetErrorState()`.
+* Maps throttle% to RPM and holds steering center while `emergency==0`.  
+* If `emergency == true` ➜ calls `SetErrorState()`.
 
 ---
 
@@ -150,5 +149,4 @@ Modules call `SetState()` or `SetErrorState()` to transition. `StateToString()` 
 
 ---
 
-> *“Making a proper state machine setup nukes the code every time – until this one.”*  
-
+> *“Making a proper state machine setup nukes the code every time – until this one.”*
