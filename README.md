@@ -19,12 +19,13 @@
 
 ## PlatformIO Setup IMPORTANT
 
-* **Running / flashing code**
-
-  1. Open the **TeensyDevelopment** folder in **VS Code** *by itself.*  
-  2. Wait for PlatformIO to finish indexing.  
-  3. Edit `src/main.cpp`.  
-  4. Click ✔️ (Build) to compile, ➡️ (Upload) to flash, 🔌 (Serial) for monitor.
+### How to run code
+  - Open the TeensyDevelopment folder in VSCode **(BY ITSELF)**
+  - Wait for platformio to load and configure
+  - Open src\main.cpp
+  - Check mark icon compiles code
+  - -> arrow icon uploads code
+  - Plug icon displays serial monitor
 
 The **TeensyDevelopment** folder is a stand‑alone PlatformIO project.
 
