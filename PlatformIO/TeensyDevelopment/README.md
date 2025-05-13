@@ -2,19 +2,18 @@
 
 **Table of Contents**
 
-1. [PlatformIO Setup (IMPORTANT)](#platformio-setup-important)  
-2. [Project Structure](#project-structure)  
-3. [Build & Flash Workflow](#build--flash-workflow)  
-4. [Module Overview](#module-overview)  
+1. [PlatformIO Setup (IMPORTANT)](#platformio-setup-important)   
+2. [Build & Flash Workflow](#build--flash-workflow)  
+3. [Module Overview](#module-overview)  
    * [State Machine](#state-machine-evt_statemachine)  
    * [Ethernet / Telemetry](#ethernet--telemetry-evt_ethernet)  
    * [RC Interface](#rc-interface-evt_rc)  
    * [VESC Driver](#vesc-driver-evt_vescdriver)  
    * [Odrive Driver](#odrive-driver-evt_odriver)  
    * [Autonomous Mode](#autonomous-mode-evt_automode)  
-5. [Runtime Flow](#runtime-flow)  
-6. [Extending the Code Base](#extending-the-code-base)  
-7. [Troubleshooting / FAQ](#troubleshooting--faq)  
+4. [Runtime Flow](#runtime-flow)  
+5. [Extending the Code Base](#extending-the-code-base)  
+6. [Troubleshooting / FAQ](#troubleshooting--faq)  
 
 ---
 
@@ -35,34 +34,6 @@ The **TeensyDevelopment** folder is a stand‑alone PlatformIO project.
 
   * Drop extra sketches in `TeensyTestCode/`.  
   * Comment your name at the top, then copy‑paste the file into `src/main.cpp` when you actually want to run it.
-
----
-
-## Project Structure
-
-PlatformIO/
-
-└── TeensyDevelopment/
-
-├── platformio.ini ← board & build settings
-
-├── src/
-
-│   └── main.cpp ← entry point (state‑machine loop)
-
-└── lib/
-
-├── EVT_StateMachine/ ← central state engine
-
-├── EVT_Ethernet/ ← UDP telemetry helpers
-
-├── EVT_RC/ ← SBUS RC interface
-
-├── EVT_VescDriver/ ← dual‑VESC UART driver
-
-├── EVT_ODriver/ ← ODrive UART driver
-
-└── EVT_AutoMode/ ← autonomous helpers
 
 
 ---
