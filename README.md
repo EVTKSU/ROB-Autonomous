@@ -150,3 +150,6 @@ Modules call `SetState()` or `SetErrorState()` to transition. `StateToString()` 
 ---
 
 > *“Making a proper state machine setup nukes the code every time – until this one.”*
+ 
+## Computing Systems and Task Distribution Diagram
+![software_diagram](README.assets/software_diagram.png)
