@@ -1,4 +1,4 @@
-# EVT‑Teensy Firmware
+# EVT‑Embedded Teensy Firmware
 
 **Table of Contents**
 
