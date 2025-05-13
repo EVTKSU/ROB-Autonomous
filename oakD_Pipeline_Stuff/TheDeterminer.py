@@ -1,9 +1,13 @@
 import cv2
 import depthai as dai
 import numpy as np
+import os
 
 # Path to your YOLOv8n COCO blob
-NN_BLOB_PATH = r"C:\Users\Ben\Downloads\yolov8n_coco_640x352.blob"
+cwd = os.getcwd()
+oak_path = "blobs/yolov8n_coco_640x352.blob"
+NN_BLOB_PATH = os.path.join(cwd, oak_path)
+
 
 # COCO class labels (80 total)
 labelMap = [
