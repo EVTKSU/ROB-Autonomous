@@ -22,6 +22,7 @@ labelMap = [
 def main():
     # 1) Build pipeline
     pipeline = dai.Pipeline()
+    device_info = dai.DeviceInfo("192.168.1.177")
 
     # 2) RGB camera at full resolution
     camRgb = pipeline.create(dai.node.ColorCamera)
