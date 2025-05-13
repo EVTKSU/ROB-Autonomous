@@ -2,8 +2,8 @@
 
 **Table of Contents**
 
-1. [PlatformIO Setup (IMPORTANT)](#platformio-setup-important)   
-2. [Build & Flash Workflow](#build--flash-workflow)  
+1. [PlatformIO Setup (IMPORTANT)](#platformio-setup-(important))   
+2. [Build & Flash Workflow](#build-&-flash-workflow)  
 3. [Module Overview](#module-overview)  
    * [State Machine](#state-machine-evt_statemachine)  
    * [Ethernet / Telemetry](#ethernet--telemetry-evt_ethernet)  
@@ -19,16 +19,17 @@
 
 ## PlatformIO Setup (IMPORTANT)
 
-The **TeensyDevelopment** folder is a stand‑alone PlatformIO project.
-
-* **Only one file may live in `src/` at a time** – that file must be `main.cpp`.  
-* All reusable code goes in `lib/` as named library folders (e.g. `lib/EVT_RC/…`).  
 * **Running / flashing code**
 
   1. Open the **TeensyDevelopment** folder in **VS Code** *by itself.*  
   2. Wait for PlatformIO to finish indexing.  
   3. Edit `src/main.cpp`.  
   4. Click the ✔️ (Build) to compile, ➡️ (Upload) to flash, 🔌 (Serial) for monitor.
+
+The **TeensyDevelopment** folder is a stand‑alone PlatformIO project.
+
+* **Only one file may live in `src/` at a time** – that file must be `main.cpp`.  
+* All reusable code goes in `lib/` as named library folders (e.g. `lib/EVT_RC/…`).  
 
 * **Storing prototypes / experiments**
 
