@@ -41,16 +41,27 @@ The **TeensyDevelopment** folder is a stand‑alone PlatformIO project.
 ## Project Structure
 
 PlatformIO/
+
 └── TeensyDevelopment/
+
 ├── platformio.ini ← board & build settings
+
 ├── src/
+
 │   └── main.cpp ← entry point (state‑machine loop)
+
 └── lib/
+
 ├── EVT_StateMachine/ ← central state engine
+
 ├── EVT_Ethernet/ ← UDP telemetry helpers
+
 ├── EVT_RC/ ← SBUS RC interface
+
 ├── EVT_VescDriver/ ← dual‑VESC UART driver
+
 ├── EVT_ODriver/ ← ODrive UART driver
+
 └── EVT_AutoMode/ ← autonomous helpers
 
 
