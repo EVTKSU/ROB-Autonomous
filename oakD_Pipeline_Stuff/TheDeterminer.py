@@ -26,7 +26,6 @@ labelMap = [
 def main():
     # 1) Build pipeline
     pipeline = dai.Pipeline()
-    device_info = dai.DeviceInfo("192.168.1.177")
 
     # 2) RGB camera at full resolution
     camRgb = pipeline.create(dai.node.ColorCamera)
@@ -90,7 +89,7 @@ def main():
     spatialDet.out.link(xoutSpatial.input)
 
     # 8) Start device and processing loop
-    with dai.Device(pipeline, device_info) as device:
+    with dai.Device(pipeline) as device:
         qRgb     = device.getOutputQueue("rgb",     maxSize=4, blocking=False)
         qSpatial = device.getOutputQueue("spatial", maxSize=4, blocking=False)
 
