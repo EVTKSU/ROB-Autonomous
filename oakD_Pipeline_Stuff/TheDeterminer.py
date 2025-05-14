@@ -90,7 +90,7 @@ def main():
     spatialDet.out.link(xoutSpatial.input)
 
     # 8) Start device and processing loop
-    with dai.Device(pipeline) as device:
+    with dai.Device(pipeline, device_info) as device:
         qRgb     = device.getOutputQueue("rgb",     maxSize=4, blocking=False)
         qSpatial = device.getOutputQueue("spatial", maxSize=4, blocking=False)
 
