@@ -42,7 +42,7 @@ def main():
     detectionNetwork.out.link(xoutDet.input)
 
     # 6) Start device and get queues
-    with dai.Device(pipeline) as device:
+    with dai.Device(pipeline, dai.DeviceInfo("169.254.1.222")) as device:
         qRgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         qDet = device.getOutputQueue(name="det", maxSize=4, blocking=False)
 

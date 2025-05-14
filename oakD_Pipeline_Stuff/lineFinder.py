@@ -75,7 +75,7 @@ def process_frame(frame):
 
 def main():
     pipeline = create_pipeline()
-    with dai.Device(pipeline) as device:
+    with dai.Device(pipeline, dai.DeviceInfo("169.254.1.222")) as device:
         q = device.getOutputQueue(name="video", maxSize=4, blocking=False)
         cv2.namedWindow("Track Center", cv2.WINDOW_NORMAL)
 

@@ -20,7 +20,7 @@ labelMap = [
     "broccoli","carrot","hot dog","pizza","donut","cake","chair","sofa","pottedplant","bed",
     "diningtable","toilet","tvmonitor","laptop","mouse","remote","keyboard","cell phone",
     "microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors",
-    "teddy bear","hair drier","toothbrush"
+    "teddy bear","hair drier","toothbrush", "bomb"
 ]
 
 def main():
@@ -89,7 +89,7 @@ def main():
     spatialDet.out.link(xoutSpatial.input)
 
     # 8) Start device and processing loop
-    with dai.Device(pipeline) as device:
+    with dai.Device(pipeline, dai.DeviceInfo("169.254.1.222")) as device:
         qRgb     = device.getOutputQueue("rgb",     maxSize=4, blocking=False)
         qSpatial = device.getOutputQueue("spatial", maxSize=4, blocking=False)
 

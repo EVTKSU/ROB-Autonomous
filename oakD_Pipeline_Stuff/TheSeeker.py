@@ -36,7 +36,7 @@ def main():
         print("No OAK devices found – check connections.")
         return
 
-    with dai.Device(pipeline, devs[0], dai.UsbSpeed.SUPER) as device:
+    with dai.Device(pipeline, dai.DeviceInfo("169.254.1.222")) as device:
         qRgb   = device.getOutputQueue(name="rgb",   maxSize=4, blocking=False)
         qDepth = device.getOutputQueue(name="depth", maxSize=4, blocking=False)
 
