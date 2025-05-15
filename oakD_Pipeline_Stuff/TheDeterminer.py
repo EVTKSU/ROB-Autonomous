@@ -1,9 +1,13 @@
 import cv2
 import depthai as dai
 import numpy as np
+import os
 
 # Path to your YOLOv8n COCO blob
-NN_BLOB_PATH = r"C:\Users\Ben\Downloads\yolov8n_coco_640x352.blob"
+cwd = os.getcwd()
+oak_path = "blobs/yolov8n_coco_640x352.blob"
+NN_BLOB_PATH = os.path.join(cwd, oak_path)
+
 
 # COCO class labels (80 total)
 labelMap = [
@@ -16,13 +20,12 @@ labelMap = [
     "broccoli","carrot","hot dog","pizza","donut","cake","chair","sofa","pottedplant","bed",
     "diningtable","toilet","tvmonitor","laptop","mouse","remote","keyboard","cell phone",
     "microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors",
-    "teddy bear","hair drier","toothbrush"
+    "teddy bear","hair drier","toothbrush", "bomb"
 ]
 
 def main():
     # 1) Build pipeline
     pipeline = dai.Pipeline()
-    device_info = dai.DeviceInfo("192.168.1.177")
 
     # 2) RGB camera at full resolution
     camRgb = pipeline.create(dai.node.ColorCamera)
@@ -86,7 +89,7 @@ def main():
     spatialDet.out.link(xoutSpatial.input)
 
     # 8) Start device and processing loop
-    with dai.Device(pipeline) as device:
+    with dai.Device(pipeline, dai.DeviceInfo("169.254.1.222")) as device:
         qRgb     = device.getOutputQueue("rgb",     maxSize=4, blocking=False)
         qSpatial = device.getOutputQueue("spatial", maxSize=4, blocking=False)
 

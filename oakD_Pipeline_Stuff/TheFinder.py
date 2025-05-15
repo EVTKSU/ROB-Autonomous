@@ -1,9 +1,12 @@
 import cv2
 import depthai as dai
 import numpy as np
+import os
 
 # Path to your downloaded YOLOv8n COCO blob
-NN_BLOB_PATH = r"C:\Users\Ben\Downloads\yolov8n_coco_640x352.blob"
+cwd = os.getcwd()
+oak_path = "blobs/yolov8n_coco_640x352.blob"
+NN_BLOB_PATH = os.path.join(cwd, oak_path)
 
 def main():
     # 1) Create pipeline
@@ -39,7 +42,7 @@ def main():
     detectionNetwork.out.link(xoutDet.input)
 
     # 6) Start device and get queues
-    with dai.Device(pipeline) as device:
+    with dai.Device(pipeline, dai.DeviceInfo("169.254.1.222")) as device:
         qRgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         qDet = device.getOutputQueue(name="det", maxSize=4, blocking=False)
 
