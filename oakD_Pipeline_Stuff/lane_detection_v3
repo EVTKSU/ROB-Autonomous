@@ -1,0 +1,238 @@
+#!/usr/bin/env python3
+import os
+import sys
+import math
+import argparse
+
+import cv2
+import depthai as dai
+import numpy as np
+
+# ----------------------------------------
+# Adjustable parameters
+# ----------------------------------------
+OUT_WIDTH            = 640    # Output width from the OAK pipeline
+OUT_HEIGHT           = 480    # Output height from the OAK pipeline
+
+WHITE_THRESH_PCT     = 60     # Percent of 255 for white threshold
+GREEN_LOWER_HLS      = (35, 100, 50)   # Lower HLS bound for green removal
+GREEN_UPPER_HLS      = (85, 255, 255)  # Upper HLS bound for green removal
+
+# Curve vs straight decision threshold (in pixels)
+CURVE_RADIUS_THRESH  = 5000  
+
+# HoughLinesP parameters for straight detection
+HOUGH_RHO            = 1
+HOUGH_THETA          = np.pi/180
+HOUGH_THRESH         = 30
+HOUGH_MIN_LEN        = 40
+HOUGH_MAX_GAP        = 10
+# ----------------------------------------
+
+def create_pipeline():
+    """Builds a barebones OAK-D pipeline: RGB → resize → XLinkOut."""
+    p = dai.Pipeline()
+    cam = p.create(dai.node.ColorCamera)
+    cam.setBoardSocket(dai.CameraBoardSocket.CAM_A)
+    cam.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
+    cam.setInterleaved(False)
+    cam.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
+
+    manip = p.create(dai.node.ImageManip)
+    manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888p)
+    manip.initialConfig.setResize(OUT_WIDTH, OUT_HEIGHT)
+    manip.initialConfig.setKeepAspectRatio(False)
+    cam.video.link(manip.inputImage)
+
+    xout = p.create(dai.node.XLinkOut)
+    xout.setStreamName("video")
+    manip.out.link(xout.input)
+
+    return p
+
+def detect_curve(frame):
+    """
+    Detect curved lanes via bird's-eye sliding-window + 2nd-degree fit.
+    Returns (overlayed_frame, avg_radius) where avg_radius is in pixels.
+    """
+    h, w = frame.shape[:2]
+    # 1) Perspective warp: trapezoid → full rectangle
+    src = np.float32([
+        [0.25*w, 0.6*h],
+        [0.75*w, 0.6*h],
+        [    w,   h  ],
+        [    0,   h  ],
+    ])
+    dst = np.float32([[0,0],[w,0],[w,h],[0,h]])
+    M   = cv2.getPerspectiveTransform(src, dst)
+    Minv= cv2.getPerspectiveTransform(dst, src)
+    warp= cv2.warpPerspective(frame, M, (w,h))
+
+    # 2) Threshold white in HLS lightness channel
+    hls = cv2.cvtColor(warp, cv2.COLOR_BGR2HLS)
+    L   = hls[:,:,1]
+    tval= int(WHITE_THRESH_PCT/100*255)
+    _, bin0 = cv2.threshold(L, tval, 255, cv2.THRESH_BINARY)
+    # 3) Remove green
+    gmask = cv2.inRange(hls, GREEN_LOWER_HLS, GREEN_UPPER_HLS)
+    bin0[gmask>0] = 0
+    # 4) Morphological close to fill gaps
+    kern = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
+    bin0 = cv2.morphologyEx(bin0, cv2.MORPH_CLOSE, kern, iterations=2)
+
+    # 5) Sliding-window histogram
+    hist      = np.sum(bin0[h//2:,:], axis=0)
+    mid       = w//2
+    left_x    = np.argmax(hist[:mid])
+    right_x   = np.argmax(hist[mid:]) + mid
+
+    nwindows  = 9
+    margin    = 80
+    minpix    = 50
+    window_h  = h // nwindows
+    ys, xs    = bin0.nonzero()
+    left_inds = []; right_inds = []
+    for win in range(nwindows):
+        y_low = h-(win+1)*window_h
+        y_hi  = h-win*window_h
+        xl, xh = left_x-margin, left_x+margin
+        rl, rh = right_x-margin, right_x+margin
+        good_l = ((ys>=y_low)&(ys<y_hi)&(xs>=xl)&(xs<xh)).nonzero()[0]
+        good_r = ((ys>=y_low)&(ys<y_hi)&(xs>=rl)&(xs<rh)).nonzero()[0]
+        left_inds .append(good_l)
+        right_inds.append(good_r)
+        if len(good_l)>minpix: left_x  = int(xs[good_l].mean())
+        if len(good_r)>minpix: right_x = int(xs[good_r].mean())
+    left_inds  = np.concatenate(left_inds)
+    right_inds = np.concatenate(right_inds)
+
+    # If no lane found, bail out
+    if left_inds.size==0 or right_inds.size==0:
+        return frame, float('inf')
+
+    # 6) Fit 2nd-degree polynomials
+    left_fit  = np.polyfit(ys[left_inds],  xs[left_inds],  2)
+    right_fit = np.polyfit(ys[right_inds], xs[right_inds], 2)
+
+    # 7) Compute radius of curvature at bottom
+    y_eval = h
+    A1,B1,_ = left_fit
+    A2,B2,_ = right_fit
+    R1 = ((1 + (2*A1*y_eval + B1)**2)**1.5) / abs(2*A1)
+    R2 = ((1 + (2*A2*y_eval + B2)**2)**1.5) / abs(2*A2)
+    R_avg = (R1 + R2) / 2
+
+    # 8) Draw lane overlay in warp space
+    overlay = np.zeros_like(warp)
+    ploty   = np.linspace(0,h-1,h)
+    leftx   = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+    rightx  = right_fit[0]*ploty**2+ right_fit[1]*ploty+ right_fit[2]
+    ptsL    = np.array([np.vstack((leftx, ploty)).T], dtype=np.int32)
+    ptsR    = np.array([np.vstack((rightx,ploty)).T], dtype=np.int32)
+    cv2.polylines(overlay, ptsL, False, (0,255,0), 5)
+    cv2.polylines(overlay, ptsR, False, (0,255,0), 5)
+
+    # 9) Warp overlay back and blend
+    back   = cv2.warpPerspective(overlay, Minv, (w,h))
+    result = cv2.addWeighted(frame, 1.0, back, 0.6, 0)
+
+    return result, R_avg
+
+def detect_straight(frame):
+    """
+    Detect straight lanes via HoughLinesP + fitLine.
+    Returns frame with green centerlines drawn.
+    """
+    h, w = frame.shape[:2]
+    # 1) Threshold & remove green
+    hls = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
+    L   = hls[:,:,1]
+    tval= int(WHITE_THRESH_PCT/100*255)
+    _, mask = cv2.threshold(L, tval, 255, cv2.THRESH_BINARY)
+    gmask = cv2.inRange(hls, GREEN_LOWER_HLS, GREEN_UPPER_HLS)
+    mask[gmask>0] = 0
+    # 2) Morph open/close
+    kern = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN,  kern, iterations=1)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kern, iterations=2)
+    # 3) Edge + Hough
+    edges = cv2.Canny(mask, 50, 150)
+    segs  = cv2.HoughLinesP(edges, HOUGH_RHO, HOUGH_THETA,
+                            HOUGH_THRESH, None,
+                            HOUGH_MIN_LEN, HOUGH_MAX_GAP)
+    if segs is None:
+        return frame
+
+    # 4) Filter & group
+    left, right = [], []
+    for x1,y1,x2,y2 in segs[:,0]:
+        dx, dy = x2-x1, y2-y1
+        slope  = np.inf if dx==0 else abs(dy/float(dx))
+        if slope < 0.5:  # skip near-horizontal
+            continue
+        midx = (x1+x2)/2
+        (left if midx<w/2 else right).append((x1,y1,x2,y2))
+
+    # 5) Fit & draw one line per side
+    def fit_draw(group):
+        if not group: return
+        pts = np.array([(x1,y1) for x1,y1,_,_ in group] +
+                       [(x2,y2) for _,_,x2,y2 in group], dtype=np.float32)
+        vx,vy,x0,y0 = cv2.fitLine(pts,cv2.DIST_L2,0,0.01,0.01).flatten()
+        ys = pts[:,1]
+        y_min,y_max = int(ys.min()), int(ys.max())
+        t_min = (y_min - y0)/vy
+        t_max = (y_max - y0)/vy
+        x_min = int(x0 + t_min*vx)
+        x_max = int(x0 + t_max*vx)
+        cv2.line(frame,(x_min,y_min),(x_max,y_max),(0,255,0),3)
+
+    fit_draw(left)
+    fit_draw(right)
+    return frame
+
+def main():
+    parser = argparse.ArgumentParser(description="Unified Lane Detector on OAK-D-LR")
+    parser.add_argument("--ip","-i",default=os.getenv("OAKD_IP",None),
+                        help="Ethernet IP (omit for USB)")
+    args = parser.parse_args()
+
+    pipeline = create_pipeline()
+    try:
+        dev = dai.Device(pipeline, dai.DeviceInfo(args.ip)) if args.ip else dai.Device(pipeline)
+    except Exception as e:
+        print("ERROR: could not connect:", e)
+        sys.exit(1)
+
+    q = dev.getOutputQueue("video", maxSize=4, blocking=False)
+    cv2.namedWindow("Unified Lane Detector", cv2.WINDOW_NORMAL)
+
+    while True:
+        inF = q.tryGet()
+        if not inF:
+            if cv2.waitKey(1)==ord('q'): break
+            continue
+
+        frame = inF.getCvFrame()
+
+        # 1) Run curved‐lane detector & get average radius
+        out_curve, R_avg = detect_curve(frame)
+
+        # 2) If radius > threshold → treat as straight
+        if abs(R_avg) > CURVE_RADIUS_THRESH:
+            out = detect_straight(frame)
+            cv2.putText(out, "Straight Lane", (50,50),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,255,0), 2)
+        else:
+            out = out_curve
+            cv2.putText(out, f"Curve Radius: {int(R_avg)}", (50,50),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2)
+
+        cv2.imshow("Unified Lane Detector", out)
+        if cv2.waitKey(1)==ord('q'):
+            break
+
+    cv2.destroyAllWindows()
+
+if __name__=="__main__":
+    main()
