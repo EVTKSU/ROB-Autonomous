@@ -32,11 +32,11 @@ void loop() {
 
   CheckForErrors();  
   updateSbusData();
-  
+
   // add switches to corresponding RC channels here
-  int auto_switch = channels[7];
-  int calibration_switch = channels[8];
-  int reset_switch = channels[4];
+  uint16_t auto_switch = channels[7];
+  uint16_t calibration_switch = channels[8];
+  uint16_t reset_switch = channels[4];
   
   switch (GetState())
   {
