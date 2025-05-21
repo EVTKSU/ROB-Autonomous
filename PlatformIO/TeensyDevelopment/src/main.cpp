@@ -1,98 +1,55 @@
-#include <Arduino.h>
-#include "EVT_StateMachine.h"
-#include "EVT_Ethernet.h"
-#include "EVT_ErrorHandler.h"
-#include "EVT_RC.h"
-#include "EVT_VescDriver.h"
-#include "EVT_AutoMode.h"
-#include "EVT_ODriver.h"
+#include <SPI.h>
+#include <Ethernet.h>
+#include <EthernetUdp.h>
 
+// Teensy's MAC and static IP
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+IPAddress ip(192, 168, 0, 177);  // Match your network config
+
+// Port to listen on
+const unsigned int localPort = 8888;
+
+// Create EthernetUDP instance
+EthernetUDP Udp;
+
+// Buffer to hold incoming packet
+char packetBuffer[UDP_TX_PACKET_MAX_SIZE];  // Standard max size is 24 bytes
 
 void setup() {
-  Serial.begin(9600);
-  delay(1000); // Wait for Serial Monitor to open
+  Serial.begin(115200);
+  while (!Serial) {
+    ; // Wait for Serial to be ready (for some Teensy boards)
+  }
 
-  
-  // Initialize modules.
-  SetState(IDLE);
-  Serial.println("Initializing modules...");
-  setupTelemetryUDP();
-  setupSbus();
-  setupVesc();
-  setupOdrv();
-  delay(200);
-  updateSbusData();
-  digitalWrite(3, HIGH); // Turn on relay 1 (odrive)
-  digitalWrite(4, HIGH); // Turn on relay 2 (vesc)
-  digitalWrite(5, HIGH); // Turn on relay 3 (contactor)
+  Serial.println("Starting UDP Receiver");
+
+  // Start Ethernet and bind UDP
+  Ethernet.begin(mac, ip);
+  Udp.begin(localPort);
+
+  // Network checks
+  if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+    Serial.println("Ethernet shield not found");
+  } else {
+    Serial.println("Ethernet hardware is present");
+  }
+
+  if (Ethernet.linkStatus() == LinkON) {
+    Serial.println("Ethernet cable is connected");
+  } else {
+    Serial.println("Ethernet cable is NOT connected pi5 <-> teensy");
+  }
 }
 
 void loop() {
-
-
-  CheckForErrors();  
-  updateSbusData();
-  
-  switch (GetState())
-  {
-  case RC:
-    if (channels[6] > 1000) {
-      SetState(AUTO);
-    } else {
-      updateVescControl();
-      updateOdrvControl();
-      
+  int packetSize = Udp.parsePacket();
+  if (packetSize > 0) {
+    int len = Udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE - 1);
+    if (len > 0) {
+      packetBuffer[len] = '\0'; // Null-terminate the string
     }
-    break;
 
-  case AUTO:
-    if (channels[6] < 1000) {
-      SetState(RC);
-    } else {
-      //updateAutonomousMode();
-      SetErrorState("Main","Do not be alarmed this is just a test");
-    break;
-
-  case ERR:
-      digitalWrite(3, LOW); // Turn off relay 1 (odrive)
-      digitalWrite(4, LOW); // Turn off relay 2 (vesc)
-      digitalWrite(5, LOW); // Turn off relay 3 (contactor)
-    // check for reset
-    if (channels[4] > 1000){
-      // COLIN LOOK HERE!! we need to set this to not be channel 4 since that will cause issues down the line with our encoder.
-      //check auto switch
-      digitalWrite(3, HIGH); // Turn off relay 1 (odrive)
-      digitalWrite(4, HIGH); // Turn off relay 2 (vesc)
-      digitalWrite(5, HIGH); // Turn off relay 3 (contactor)
-      Serial.println("Attempting to clear errors...");
-      if (channels[6] > 1000) {
-        Serial.println("TURN OFF AUTO SWITCH BEFORE ATTEMPTING TO CLEAR ERRORS");
-      }else{
-        Serial.println();
-        Serial.println("yay! Errors cleared :D");
-        SetState(IDLE);
-        odrive.setState(AXIS_STATE_UNDEFINED);
-      }
-    }
-  break;
-  
-  case IDLE:
-    // Check if the system is idle and not in error state. if idle, it waits for commands.
-    if (channels[8] > 400) {
-      SetState(RC);
-    } else {
-      Serial.println("System is idle. Waiting for commands...");
-      delay(1000); // Add a delay to avoid flooding the serial output
-    }
-    break;
-
-  default:
-      Serial.println("Warning: Unknown state encountered. Defaulting to IDLE.");
-      SetState(IDLE);
-      PrintState();
-    break;
-  }
-
+    Serial.print("Received packet: ");
+    Serial.println(packetBuffer);
   }
 }
-// i put this here in case i need to test something in the future and replace the main file during testing.
