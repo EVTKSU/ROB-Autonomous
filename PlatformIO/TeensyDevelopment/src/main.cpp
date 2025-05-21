@@ -33,10 +33,15 @@ void loop() {
   CheckForErrors();  
   updateSbusData();
   
+  // add switches to corresponding RC channels here
+  int auto_switch = channels[7];
+  int calibration_switch = channels[8];
+  int reset_switch = channels[4];
+  
   switch (GetState())
   {
   case RC:
-    if (channels[7] > 1000) {
+    if (auto_switch > 1000) {
       SetState(AUTO);
     } else {
       updateVescControl();
@@ -46,7 +51,7 @@ void loop() {
     break;
 
   case AUTO:
-    if (channels[7] < 1000) {
+    if (auto_switch < 1000) {
       SetState(RC);
     } else {
       //updateAutonomousMode();
@@ -58,14 +63,13 @@ void loop() {
       digitalWrite(4, LOW); // Turn off relay 2 (vesc)
       digitalWrite(5, LOW); // Turn off relay 3 (contactor)
     // check for reset
-    if (channels[4] > 1000){
-      // COLIN LOOK HERE!! we need to set this to not be channel 4 since that will cause issues down the line with our encoder.
-      //check auto switch
-      digitalWrite(3, HIGH); // Turn off relay 1 (odrive)
-      digitalWrite(4, HIGH); // Turn off relay 2 (vesc)
-      digitalWrite(5, HIGH); // Turn off relay 3 (contactor)
+    if (reset_switch > 1000){
+
+      digitalWrite(3, HIGH); // Turn on relay 1 (odrive)
+      digitalWrite(4, HIGH); // Turn on relay 2 (vesc)
+      digitalWrite(5, HIGH); // Turn on relay 3 (contactor)
       Serial.println("Attempting to clear errors...");
-      if (channels[7] > 1000) {
+      if (auto_switch > 1000) {
         Serial.println("TURN OFF AUTO SWITCH BEFORE ATTEMPTING TO CLEAR ERRORS");
       }else{
         Serial.println();
@@ -78,7 +82,7 @@ void loop() {
   
   case IDLE:
     // Check if the system is idle and not in error state. if idle, it waits for commands.
-    if (channels[8] > 400) {
+    if (calibration_switch > 400) {
       SetState(RC);
     } else {
       Serial.println("System is idle. Waiting for commands...");
