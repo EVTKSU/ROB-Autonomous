@@ -14,7 +14,7 @@ void setup() {
 
   
   // Initialize modules.
-  SetState(IDLE);
+  SetState(RC);
   Serial.println("Initializing modules...");
   setupTelemetryUDP();
   setupSbus();
@@ -36,7 +36,7 @@ void loop() {
   switch (GetState())
   {
   case RC:
-    if (channels[6] > 1000) {
+    if (channels[7] > 1000) {
       SetState(AUTO);
     } else {
       updateVescControl();
@@ -46,7 +46,7 @@ void loop() {
     break;
 
   case AUTO:
-    if (channels[6] < 1000) {
+    if (channels[7] < 1000) {
       SetState(RC);
     } else {
       //updateAutonomousMode();
@@ -65,7 +65,7 @@ void loop() {
       digitalWrite(4, HIGH); // Turn off relay 2 (vesc)
       digitalWrite(5, HIGH); // Turn off relay 3 (contactor)
       Serial.println("Attempting to clear errors...");
-      if (channels[6] > 1000) {
+      if (channels[7] > 1000) {
         Serial.println("TURN OFF AUTO SWITCH BEFORE ATTEMPTING TO CLEAR ERRORS");
       }else{
         Serial.println();
