@@ -11,7 +11,9 @@
 void setup() {
   Serial.begin(9600);
   delay(1000); // Wait for Serial Monitor to open
-
+  pinMode(3, OUTPUT);
+  pinMode(4, OUTPUT);
+  pinMode(5, OUTPUT);
   
   // Initialize modules.
   SetState(RC);
