@@ -60,8 +60,11 @@ void loop() {
     if (auto_switch > 1000) {
       SetState(AUTO);
     } else {
+      Serial.println("[MAIN] starting VESC controll =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
       updateVescControl();
+      Serial.println("[MAIN] starting ODRIVE controll =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
       updateOdrvControl();
+      Serial.println("[MAIN] Vesc and Odrive done =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
       
     }
     break;
