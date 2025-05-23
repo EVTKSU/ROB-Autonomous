@@ -51,8 +51,8 @@ void loop() {
 
   // add switches to corresponding RC channels here
   uint16_t auto_switch = channels[7];
-  uint16_t calibration_switch = channels[8];
-  uint16_t reset_switch = channels[4];
+  uint16_t calibration_switch = channels[5]; // just for calibration out of idle on starup and starts RC
+  uint16_t reset_switch = channels[4]; // runs odrive calibration and clears errors from err state
   
   switch (GetState())
   {
