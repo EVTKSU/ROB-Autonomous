@@ -38,9 +38,9 @@ void vescErrorCheck() {
 }
 void updateVescControl() {
 
-    Serial.print("[1] get vesc values");
+    Serial.println("[1] get vesc values");
     vesc1.getVescValues();
-    Serial.print("[2] check error");
+    Serial.println("[2] check error");
     if (vesc1.data.error > 0) {
         SetErrorState(ERR_VESC, String(vesc1.data.error).c_str());
     }
@@ -51,7 +51,7 @@ void updateVescControl() {
     
     float rpmCommand = 0.0f;
 
-    Serial.print("[3] map channel value -> rpmCommand");
+    Serial.println("[3] map channel value -> rpmCommand");
     
     if (ch_vesc > (neutral + deadband)) {
         float forwardRange = 1700.0f - (neutral + deadband);
@@ -68,9 +68,9 @@ void updateVescControl() {
         rpmCommand = 0.0f;
     }
 
-    Serial.print("[4] send command to vesc1");
+    Serial.println("[4] send command to vesc1");
     vesc1.setRPM(rpmCommand);
-    Serial.print("[5] send command to vesc2");
+    Serial.println("[5] send command to vesc2");
     vesc2.setRPM(rpmCommand);
     
 }
