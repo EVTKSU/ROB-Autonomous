@@ -102,6 +102,7 @@ void loop() {
       SetState(RC);
     } else {
       Serial.println("System is idle. Waiting for commands...");
+      updateSbusData();
       delay(1000); // Add a delay to avoid flooding the serial output
     }
     break;
