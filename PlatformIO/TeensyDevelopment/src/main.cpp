@@ -45,8 +45,8 @@ void setup() {
 
 void loop() {
 
-
   CheckForErrors();  
+
   updateSbusData();
 
   // add switches to corresponding RC channels here
@@ -60,11 +60,8 @@ void loop() {
     if (auto_switch > 1000) {
       SetState(AUTO);
     } else {
-      Serial.println("[MAIN] starting VESC controll =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
       updateVescControl();
-      Serial.println("[MAIN] starting ODRIVE controll =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
       updateOdrvControl();
-      Serial.println("[MAIN] Vesc and Odrive done =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
       
     }
     break;
@@ -101,12 +98,12 @@ void loop() {
   
   case IDLE:
     // Check if the system is idle and not in error state. if idle, it waits for commands.
-    if (calibration_switch > 400) {
+    if (calibration_switch > 400 && auto_switch < 1000) {
       SetState(RC);
     } else {
       Serial.println("System is idle. Waiting for commands...");
        if (auto_switch > 1000) {
-      Serial.println("auto switch is on ya dingus");
+      Serial.println("[Auto Switch is on ya dingus]");
       }
       updateSbusData();
       delay(1000); // Add a delay to avoid flooding the serial output
