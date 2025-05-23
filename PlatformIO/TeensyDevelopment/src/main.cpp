@@ -46,7 +46,7 @@ void setup() {
 void loop() {
 
   CheckForErrors();  
-
+  Serial.println("UPDATING SBUS DATA |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
   updateSbusData();
 
   // add switches to corresponding RC channels here
