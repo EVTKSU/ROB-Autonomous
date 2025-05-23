@@ -15,6 +15,10 @@ void setup() {
   pinMode(4, OUTPUT);
   pinMode(5, OUTPUT);
   
+  digitalWrite(3, HIGH); // Turn on relay 1 (odrive)
+  digitalWrite(4, HIGH); // Turn on relay 2 (vesc)
+  digitalWrite(5, HIGH); // Turn on relay 3 (contactor)
+  
   // Initialize modules.
   SetState(RC);
   Serial.println("Initializing modules...");
@@ -24,9 +28,6 @@ void setup() {
   setupOdrv();
   delay(200);
   updateSbusData();
-  digitalWrite(3, HIGH); // Turn on relay 1 (odrive)
-  digitalWrite(4, HIGH); // Turn on relay 2 (vesc)
-  digitalWrite(5, HIGH); // Turn on relay 3 (contactor)
 }
 
 void loop() {

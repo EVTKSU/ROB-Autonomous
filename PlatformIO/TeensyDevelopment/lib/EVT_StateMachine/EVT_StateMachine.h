@@ -17,12 +17,14 @@ enum STATE {
     STATE_COUNT ///< Provides us with the number of states we have defined
 };
 const char *state_names[] = {
-    "None",
-    "Initialization",
-    "Calibration",
-    "RC",
-    "Autonomous",
-    "ERROR!"
+   "None",           // NONE
+    "Initialization", // INIT
+    "Idle",           // IDLE   <-- insert
+    "Calibration",    // CALIB
+    "RC",             // RC
+    "Autonomous",     // AUTO
+    "Error"           // ERR
+    // (no entry for STATE_COUNT)
 };
 /**
  * @brief The current state of the system.

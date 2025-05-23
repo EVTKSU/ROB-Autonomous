@@ -103,9 +103,16 @@ String odriveErrorToString(uint32_t err) {
 }
 
 void printOdriveError() {
-    uint32_t errorCode = odrive.getParameterAsInt("axis0.error");
-    Serial.print("ODrive Error: ");
-    Serial.println(odriveErrorToString(errorCode));
+     // read the top‐level axis error
+  uint32_t axisErr    = odrive.getParameterAsInt("axis0.error");
+  // read the motor, encoder and controller errors too
+  uint32_t motorErr   = odrive.getParameterAsInt("axis0.motor.error");
+  uint32_t encoderErr = odrive.getParameterAsInt("axis0.encoder.error");
+  uint32_t ctrlErr    = odrive.getParameterAsInt("axis0.controller.error");
+  Serial.print("AxisErr: ");    Serial.println(axisErr);
+  Serial.print("MotorErr: ");   Serial.println(motorErr);
+  Serial.print("EncoderErr: "); Serial.println(encoderErr);
+  Serial.print("CtrlErr: ");    Serial.println(ctrlErr);
 }
 
 void odrvErrorCheck() {
@@ -123,10 +130,23 @@ void odrvErrorCheck() {
 // -------------------------------------------------------------------------------------------------
 void updateOdrvControl() {
     // Uncomment the line below for verbose error tracking
-    // printOdriveError();
+     // printOdriveError();
 
-    // Handle SBUS channel 5 for error clear / re‑cal.
-    int ch_clear = channels[5];
+    
+
+    // Wait for first‑time calibration.
+    if (!systemInitialized) {
+        if (channels[5] > 900) {
+            initCalibration();
+            systemInitialized = true;
+        } else {
+            Serial.print("Waiting for calibration trigger, SBUS channel 5: ");
+            Serial.println(String(channels[5]));
+            return;
+        }
+    }
+// Handle SBUS channel 5 for error clear / re‑cal.
+    int ch_clear = channels[4];
     if (ch_clear > 1500 && !errorClearFlag) {
         errorClearFlag = true;
         if (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL) {
@@ -144,19 +164,6 @@ void updateOdrvControl() {
     if (ch_clear < 1500 && errorClearFlag) {
         errorClearFlag = false;
     }
-
-    // Wait for first‑time calibration.
-    if (!systemInitialized) {
-        if (channels[5] > 900) {
-            initCalibration();
-            systemInitialized = true;
-        } else {
-            Serial.print("Waiting for calibration trigger, SBUS channel 5: ");
-            Serial.println(String(channels[5]));
-            return;
-        }
-    }
-
     // ----------------------------------------------------------
     // NEW STEERING MAPPING (no decay)
     // ----------------------------------------------------------
@@ -198,15 +205,14 @@ void updateOdrvControl() {
     odrive.setPosition(lastTargetPosition, 0.0f);   // zero velocity‑FF to avoid overshoot
 
     // Non‑blocking debug print every 1000 ms with carriage return.
-    static unsigned long lastDebugPrint = 0;
-    if (millis() - lastDebugPrint > 1000) {
-        ODriveFeedback fb = odrive.getFeedback();
-        odrvDebug = String("Steering Target: ") + String(lastTargetPosition, 2) +
-                    " | ODrive Pos: " + String(fb.pos, 2) +
-                    " | CH3: " + String(ch_steer);
-                   
-                    
-        Serial.print(odrvDebug + "\r");
-        lastDebugPrint = millis();
-    }
+    // 3) debug print with a full newline so it doesn’t merge into the previous println
+  static unsigned long lastDebugPrint = 0;
+  if (millis() - lastDebugPrint > 1000) {
+    ODriveFeedback fb = odrive.getFeedback();
+    odrvDebug = String("Steering Target: ") + String(lastTargetPosition,2)
+             + " | ODrive Pos: "    + String(fb.pos,2)
+             + " | Sbus steer value: " + String(channels[3]);
+    Serial.println(odrvDebug);       // <-- println() here, not print()
+    lastDebugPrint = millis();
+  }
 }
