@@ -39,15 +39,13 @@ void vescErrorCheck() {
 void updateVescControl() {
 
     // [1] get vesc values  ========================================================================
-    vesc1.getVescValues();
+   // vesc1.getVescValues();
     // [2] check error  ============================================================================
-    if (vesc1.data.error > 0) {
-        SetErrorState(ERR_VESC, String(vesc1.data.error).c_str());
-    }
+   
 
     int ch_vesc = channels[1];
     const int neutral = 990;
-    const int deadband = 20;
+    const int deadband = 80;
     
     float rpmCommand = 0.0f;
 
@@ -70,7 +68,8 @@ void updateVescControl() {
     } else {
         rpmCommand = 0.0f;
         
-    Serial.println("no throttle yay");
+    Serial.println("no throttle yay" );
+    Serial.println(channels[1]);
     }
 
     // {4] send command to vesc1  ====================================================================
