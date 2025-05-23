@@ -135,6 +135,7 @@ void updateOdrvControl() {
     
 
     // Wait for first‑time calibration.
+    Serial.print("[1] first time calibration checks");
     if (!systemInitialized) {
         if (channels[5] > 900) {
             initCalibration();
@@ -146,6 +147,7 @@ void updateOdrvControl() {
         }
     }
 // Handle SBUS channel 5 for error clear / re‑cal.
+Serial.print("[2] SBUS error checking / handling");
     int ch_clear = channels[4];
     if (ch_clear > 1500 && !errorClearFlag) {
         errorClearFlag = true;
@@ -169,6 +171,7 @@ void updateOdrvControl() {
     // ----------------------------------------------------------
 
     // Encoder extrema and derived midpoint
+    Serial.print("[3] steering map stuff");
     const float MAX_LEFT_POS  =  -2.33f;   // Hard left encoder reading
     const float MAX_RIGHT_POS = 1.0f;  // Hard right encoder reading
     const float MID_POS       = (MAX_LEFT_POS + MAX_RIGHT_POS) / 2.0f;   // -0.665
@@ -182,6 +185,8 @@ void updateOdrvControl() {
         midpointSet = true;
     }
 
+
+    Serial.print("[4] reading and mapping steering channel");
     // Read steering channel (CH3)
     int ch_steer = channels[3];
 
@@ -200,6 +205,7 @@ void updateOdrvControl() {
         currentSteeringOffset = 0.0f;
     }
 
+    Serial.print("[5] Computing and sending steer command");
     // Compute and send target
     lastTargetPosition = steeringZeroOffset + currentSteeringOffset;
     odrive.setPosition(lastTargetPosition, 0.0f);   // zero velocity‑FF to avoid overshoot
