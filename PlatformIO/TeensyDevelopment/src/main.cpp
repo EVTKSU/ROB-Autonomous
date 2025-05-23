@@ -102,6 +102,9 @@ void loop() {
       SetState(RC);
     } else {
       Serial.println("System is idle. Waiting for commands...");
+       if (auto_switch > 1000) {
+      Serial.println("auto switch is on ya dingus");
+      }
       updateSbusData();
       delay(1000); // Add a delay to avoid flooding the serial output
     }

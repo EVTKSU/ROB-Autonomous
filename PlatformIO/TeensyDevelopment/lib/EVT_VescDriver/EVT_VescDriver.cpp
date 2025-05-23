@@ -56,6 +56,7 @@ void updateVescControl() {
     if (ch_vesc > (neutral + deadband)) {
         float forwardRange = 1700.0f - (neutral + deadband);
         rpmCommand = ((float)ch_vesc - (neutral + deadband)) / forwardRange * 7500.0f;
+        Serial.println("forwarding!!");
         if (rpmCommand < 0.0f) rpmCommand = 0.0f;
         if (rpmCommand > 7500.0f) rpmCommand = 7500.0f;
     } else if (ch_vesc < (neutral - deadband)) {
@@ -64,13 +65,18 @@ void updateVescControl() {
         if (reverseProportion < 0.0f) reverseProportion = 0.0f;
         if (reverseProportion > 1.0f) reverseProportion = 1.0f;
         rpmCommand = -reverseProportion * 7500.0f;
+            Serial.println("reversing!!");
+
     } else {
         rpmCommand = 0.0f;
+        
+    Serial.println("no throttle yay");
     }
 
     Serial.println("[4] send command to vesc1");
     vesc1.setRPM(rpmCommand);
     Serial.println("[5] send command to vesc2");
     vesc2.setRPM(rpmCommand);
+    
     
 }
