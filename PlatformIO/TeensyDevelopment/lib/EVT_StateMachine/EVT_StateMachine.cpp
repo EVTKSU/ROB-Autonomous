@@ -43,7 +43,7 @@ void PrintState(){
 }
 
 const char* StateToString(STATE s) {
-    if (s >= 0 && s < STATE_COUNT) {
+    if (s >= 0 && s <= ERR) {
         return state_names[s];
     } else {
         return "INVALID_STATE"; // Handle out-of-range values

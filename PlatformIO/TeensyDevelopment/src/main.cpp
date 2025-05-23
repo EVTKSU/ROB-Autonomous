@@ -8,8 +8,19 @@
 #include "EVT_ODriver.h"
 
 
+    // NONE,   < No state defined.
+    // INIT,   < Initialization state.
+    // IDLE, < Idle state.  
+    // CALIB,  < Calibration state.
+    // RC,     < Remote Control state.
+    // AUTO,   < Autonomous state.
+    // ERR,     < Error state.
+
+
 void setup() {
+  
   Serial.begin(9600);
+  SetState(NONE);
   delay(1000); // Wait for Serial Monitor to open
   pinMode(3, OUTPUT);
   pinMode(4, OUTPUT);
@@ -20,7 +31,7 @@ void setup() {
   digitalWrite(5, HIGH); // Turn on relay 3 (contactor)
   
   // Initialize modules.
-  SetState(RC);
+  SetState(INIT);
   Serial.println("Initializing modules...");
   setupTelemetryUDP();
   setupSbus();
@@ -28,6 +39,8 @@ void setup() {
   setupOdrv();
   delay(200);
   updateSbusData();
+  //set to idle state after setup
+  SetState(IDLE);
 }
 
 void loop() {

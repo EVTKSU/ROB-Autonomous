@@ -14,7 +14,6 @@ enum STATE {
     RC,     ///< Remote Control state.
     AUTO,   ///< Autonomous state.
     ERR,     ///< Error state.
-    STATE_COUNT ///< Provides us with the number of states we have defined
 };
 const char *state_names[] = {
    "None",           // NONE
