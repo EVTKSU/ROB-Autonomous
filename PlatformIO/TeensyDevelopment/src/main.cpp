@@ -72,6 +72,7 @@ void loop() {
     } else {
       //updateAutonomousMode();
       SetErrorState("Main","Do not be alarmed this is just a test");
+    }
     break;
 
   case ERR:
@@ -118,5 +119,5 @@ void loop() {
   }
 
   }
-}
+
 // i put this here in case i need to test something in the future and replace the main file during testing.
