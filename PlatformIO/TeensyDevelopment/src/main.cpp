@@ -16,7 +16,30 @@
     // AUTO,   < Autonomous state.
     // ERR,     < Error state.
 
+  uint16_t auto_switch;
+  uint16_t calibration_switch; 
+  uint16_t reset_switch;
+  
 
+    unsigned long logLineCounter = 0;  // counts log lines
+
+// Timestamp macro (prints micros())
+#define TIMESTAMP()            \
+  do {                         \
+    Serial.print(micros());    \
+    Serial.print(" us | ");    \
+  } while (0)
+
+// Log macro: line#, timestamp, message
+#define LOG(msg)                                 \
+  do {                                           \
+    Serial.print(logLineCounter++);             \
+    Serial.print(" | ");                        \
+    TIMESTAMP();                                 \
+    Serial.println(msg);                         \
+  } while (0)
+
+  
 void setup() {
   
   Serial.begin(9600);
@@ -45,18 +68,25 @@ void setup() {
 
 void loop() {
 
-  CheckForErrors();  
-  Serial.println("UPDATING SBUS DATA |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
+  LOG("Loop start");
   updateSbusData();
+  Serial.printf("calib: %d, auto: %d, reset: %d\n", channels[5], channels[7], channels[4]);
+
+  CheckForErrors();
+  LOG("CHECKING FOR ERRORS");
+  // Check for errors in the system.
+  
 
   // add switches to corresponding RC channels here
-  uint16_t auto_switch = channels[7];
-  uint16_t calibration_switch = channels[5]; // just for calibration out of idle on starup and starts RC
-  uint16_t reset_switch = channels[4]; // runs odrive calibration and clears errors from err state
+  auto_switch = channels[7];
+  calibration_switch = channels[5]; // just for calibration out of idle on starup and starts RC
+  reset_switch = channels[4]; // runs odrive calibration and clears errors from err state
   
   switch (GetState())
   {
   case RC:
+    updateSbusData();
+      LOG("UPDATING SBUS DATA INSIDE RC CASE");
     if (auto_switch > 1000) {
       SetState(AUTO);
     } else {
@@ -98,15 +128,17 @@ void loop() {
   break;
   
   case IDLE:
+      updateSbusData();
     // Check if the system is idle and not in error state. if idle, it waits for commands.
     if (calibration_switch > 400 && auto_switch < 1000) {
       SetState(RC);
     } else {
-      Serial.println("System is idle. Waiting for commands...");
+      updateSbusData();
+      LOG("System is idle. Waiting for commands...");
        if (auto_switch > 1000) {
       Serial.println("[Auto Switch is on ya dingus]");
       }
-      updateSbusData();
+      
       delay(1000); // Add a delay to avoid flooding the serial output
     }
     break;

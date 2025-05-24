@@ -211,16 +211,9 @@ void updateOdrvControl() {
     // Compute and send target
     lastTargetPosition = steeringZeroOffset + currentSteeringOffset;
     odrive.setPosition(lastTargetPosition, 0.0f);   // zero velocity‑FF to avoid overshoot
-
+    Serial.println("Steering target: " + String(lastTargetPosition, 2));
     // Non‑blocking debug print every 1000 ms with carriage return.
     // 3) debug print with a full newline so it doesn’t merge into the previous println
-  static unsigned long lastDebugPrint = 0;
-  if (millis() - lastDebugPrint > 1000) {
-    ODriveFeedback fb = odrive.getFeedback();
-    odrvDebug = String("Steering Target: ") + String(lastTargetPosition,2)
-             + " | ODrive Pos: "    + String(fb.pos,2)
-             + " | Sbus steer value: " + String(channels[3]);
-    Serial.println(odrvDebug);       // <-- println() here, not print()
-    lastDebugPrint = millis();
-  }
+  
+  
 }

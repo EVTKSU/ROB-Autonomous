@@ -5,6 +5,8 @@ VescUart vesc1;
 VescUart vesc2;
 String vescDebug = "";
 
+int i = 500;
+
 void setupVesc() {
     Serial1.begin(115200);
     vesc1.setSerialPort(&Serial1);
@@ -71,11 +73,28 @@ void updateVescControl() {
     Serial.println("no throttle yay" );
     Serial.println(channels[1]);
     }
-
+    Serial.println("RC Throttle: " + String(channels[1]));
+    Serial.println("rpmCommand: " + String(rpmCommand));
     // {4] send command to vesc1  ====================================================================
     vesc1.setRPM(rpmCommand);
     // [5] send command to vesc2 =====================================================================
-    vesc2.setRPM(rpmCommand);
+    //vesc2.setRPM(rpmCommand);
+
+    // demo 1
+    // for (int i = 500; i < 1400; i+= 50) {
+    //     vesc1.setRPM(i);
+    //     Serial.println(i);
+    //     delay(200);
+    // }
+
+    // demo 2
+    // if (i > 1700) {
+    //     i = 500;
+    // } else {
+    //     i += 50;
+    // }
+    // vesc1.setRPM(i);
+
     
     
 }
